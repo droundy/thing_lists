@@ -1,8 +1,3 @@
-# thing_lists
+# Thing Lists
 
-A new Flutter project.
-
-## Getting Started
-
-For help getting started with Flutter, view our online
-[documentation](http://flutter.io/).
+An app for lists of things.

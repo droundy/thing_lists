@@ -1,5 +1,5 @@
 name: thing_lists
-description: A new Flutter project.
+description: An app for lists of things
 
 dependencies:
   flutter:
