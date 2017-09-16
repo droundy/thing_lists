@@ -4,6 +4,11 @@ description: An app for lists of things
 dependencies:
   flutter:
     sdk: flutter
+  share: "^0.2.1"
+  path_provider: "^0.2.1+1"
+  google_sign_in: "^0.3.1"
+  firebase_auth: "^0.2.3"
+  firebase_database: "^0.1.0"
 
 dev_dependencies:
   flutter_test:

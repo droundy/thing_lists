@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "435198995387",
+    "firebase_url": "https://thing-lists.firebaseio.com",
+    "project_id": "thing-lists",
+    "storage_bucket": "thing-lists.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:435198995387:android:334dd5bd232187b1",
+        "android_client_info": {
+          "package_name": "edu.oregonstate.physics.thinglists"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "435198995387-ndiksk4bgphq3eq0vla7g3vt0bsrds8m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDb1WdKKea37YIMbK-XmoaGMxdPAIZxi_0"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
