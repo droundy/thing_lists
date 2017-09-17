@@ -117,9 +117,20 @@ class _ListPageState extends State<ListPage> {
             padding: const EdgeInsets.all(20.0),
             children: xx),
         floatingActionButton: new FloatingActionButton(
-            onPressed: () {
-          print('pressed button');
-        },
+            onPressed: () async {
+              String newitem = await textInputDialog(context, 'New $listname?');
+              Map data = {};
+              DataSnapshot old = await _ref.once();
+              if (old.value != null) {
+                data = old.value;
+              }
+              data[newitem] = {
+                'chosen': new DateTime.now().millisecondsSinceEpoch,
+                'ignored': 0,
+              };
+              _ref.set(data);
+              print('got $newitem');
+            },
             tooltip: 'Increment',
             child: new Icon(Icons.add),
                                                        ));
@@ -132,4 +143,32 @@ void main() {
           routes: <String, WidgetBuilder>{
             '/': _signInPage,
           }));
+}
+
+Future<String> textInputDialog(BuildContext context, String title) async {
+  String foo;
+  return showDialog(context: context,
+      child: new AlertDialog(title: new Text(title),
+          content: new TextField(
+              onChanged: (String newval) {
+            foo = newval;
+          },
+              onSubmitted: (String newval) {
+            Navigator.pop(context, newval);
+          }),
+          actions: <Widget>[
+            new FlatButton(
+                child: new Text('CANCEL'),
+                onPressed: () {
+              Navigator.pop(context, null);
+            }
+                           ),
+            new FlatButton(
+                child: new Text('ADD'),
+                onPressed: () {
+              Navigator.pop(context, foo);
+            }
+                           ),
+          ]),
+                    );
 }
