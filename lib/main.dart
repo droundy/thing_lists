@@ -104,7 +104,32 @@ class _ListPageState extends State<ListPage> {
   Widget build(BuildContext context) {
     List<Widget> xx = [];
     _items.forEach((i) {
-          xx.add(new Text(i));
+          print('one item is $i');
+          xx.add(new Dismissible(
+                  child: new Card(
+                      child: new ListTile(
+                          title: new Text(i),
+                          onLongPress: () async {
+                            print('selected $i');
+                            Navigator.of(context).pushNamed('/$i');
+                          })),
+                  background: new Card(
+                      child: new ListTile(title: new Text('')),
+                      color: const Color(0xFF005f00)),
+                  secondaryBackground: new Card(
+                      child: new ListTile(title: new Text('')),
+                      color: const Color(0xFF8f7f00)),
+                  onDismissed: (direction) async {
+                    print('dismissed $i in $direction');
+                    Map data = (await _ref.once()).value;
+                    if (direction == DismissDirection.startToEnd) {
+                      data[i]['chosen'] = new DateTime.now().millisecondsSinceEpoch;
+                    } else {
+                      data[i]['ignored'] = new DateTime.now().millisecondsSinceEpoch;
+                    }
+                    _ref.set(data);
+                  },
+                                 ));
         });
     return new Scaffold(
         appBar: new AppBar(
