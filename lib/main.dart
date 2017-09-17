@@ -38,7 +38,7 @@ Widget _signInPage(BuildContext context) {
     _root = FirebaseDatabase.instance.reference().child(_user.uid);
     _root.keepSynced(true);
     print('I am going to the lists!');
-    Navigator.of(context).pushNamed('/.');
+    Navigator.of(context).pushNamed('/_');
   }
   if (!_have_signed_in_yet) {
     _have_signed_in_yet = true;
@@ -76,8 +76,22 @@ class ListPage extends StatefulWidget {
 class _ListPageState extends State<ListPage> {
   final String listname;
   DatabaseReference _ref;
+  List<String> _items = [];
+  final GlobalKey<AnimatedListState> listKey = new GlobalKey<AnimatedListState>();
+
   _ListPageState({this.listname}) {
     _ref = _root.child(listname);
+    _ref.onValue.listen((Event event) {
+      setState(() {
+        final iteminfo = event.snapshot.value;
+        _items = [];
+        if (iteminfo != null) {
+          iteminfo.forEach((i,info) {
+            _items.add(i);
+          });
+        }
+      });
+    });
   }
 
   @override
@@ -88,16 +102,27 @@ class _ListPageState extends State<ListPage> {
 
   @override
   Widget build(BuildContext context) {
+    List<Widget> xx = [];
+    _items.forEach((i) {
+          xx.add(new Text(i));
+        });
     return new Scaffold(
         appBar: new AppBar(
             title: new Text('$listname'),
             actions: <Widget>[
             ],
                            ),
-        body: new Center(
-            child: new FlatButton(
-                child: new Text('Example button'),
-                onPressed: () {print('pressed button');})));
+        body: new ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.all(20.0),
+            children: xx),
+        floatingActionButton: new FloatingActionButton(
+            onPressed: () {
+          print('pressed button');
+        },
+            tooltip: 'Increment',
+            child: new Icon(Icons.add),
+                                                       ));
   }
 }
 
