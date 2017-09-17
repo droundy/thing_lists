@@ -62,16 +62,43 @@ Route ListRoute(RouteSettings settings) {
   final DatabaseReference _ref = _root.child(_listname);
   return new MaterialPageRoute(
       settings: settings,
-      builder: (context) => new Scaffold(
-      appBar: new AppBar(
-          title: new Text('$_listname'),
-          actions: <Widget>[
-          ],
-                         ),
-      body: new Center(
-          child: new FlatButton(
-              child: new Text('Example button'),
-              onPressed: () {print('pressed button');}))));
+      builder: (context) => new ListPage(listname: _listname));
+}
+
+class ListPage extends StatefulWidget {
+  final String listname;
+  ListPage({Key key, this.listname}) : super(key: key);
+
+  @override
+  _ListPageState createState() => new _ListPageState(listname: listname);
+}
+
+class _ListPageState extends State<ListPage> {
+  final String listname;
+  DatabaseReference _ref;
+  _ListPageState({this.listname}) {
+    _ref = _root.child(listname);
+  }
+
+  @override
+  void initState() {
+    FirebaseDatabase.instance.setPersistenceEnabled(true);
+    FirebaseDatabase.instance.setPersistenceCacheSizeBytes(1000000);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return new Scaffold(
+        appBar: new AppBar(
+            title: new Text('$listname'),
+            actions: <Widget>[
+            ],
+                           ),
+        body: new Center(
+            child: new FlatButton(
+                child: new Text('Example button'),
+                onPressed: () {print('pressed button');})));
+  }
 }
 
 class AnimatedListSample extends StatefulWidget {
@@ -146,32 +173,6 @@ class _AnimatedListSampleState extends State<AnimatedListSample> {
         onGenerateRoute: ListRoute,
         routes: <String, WidgetBuilder>{
           '/': _signInPage,
-          '/list': (BuildContext context) =>
-          new Scaffold(
-              appBar: new AppBar(
-                  title: const Text('AnimatedList'),
-                  actions: <Widget>[
-                    new IconButton(
-                        icon: const Icon(Icons.add_circle),
-                        onPressed: _insert,
-                        tooltip: 'insert a new item',
-                                   ),
-                    new IconButton(
-                        icon: const Icon(Icons.remove_circle),
-                        onPressed: _remove,
-                        tooltip: 'remove the selected item',
-                                   ),
-                  ],
-                                 ),
-              body: new Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: new AnimatedList(
-                      key: _listKey,
-                      initialItemCount: _list.length,
-                      itemBuilder: _buildItem,
-                                          ),
-                                ),
-                       ),
         },
     );
   }
