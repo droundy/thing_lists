@@ -2,8 +2,77 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+
+import 'package:share/share.dart';
+
+final GoogleSignIn _googleSignIn = new GoogleSignIn();
+FirebaseUser _user = null;
+DatabaseReference _root = null;
+final FirebaseAuth _auth = FirebaseAuth.instance;
+final _random = new Random(); // generates a new Random object
+
+bool _have_signed_in_yet = false;
+
+Widget _signInPage(BuildContext context) {
+  Future<Null> _signMeInWithGoogle() async {
+    print('I am signing in with google.');
+    final GoogleSignInAccount googleUser = await _googleSignIn.signIn();
+    print('I have signed in...');
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    _user = await _auth.signInWithGoogle(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken);
+    print('I have signed in with Firebase...');
+    assert(_user.email != null);
+    assert(_user.displayName != null);
+    assert(_user.uid != null);
+    assert(!_user.isAnonymous);
+    _root = FirebaseDatabase.instance.reference().child(_user.uid);
+    _root.keepSynced(true);
+    print('I am going to the lists!');
+    Navigator.of(context).pushNamed('/.');
+  }
+  if (!_have_signed_in_yet) {
+    _have_signed_in_yet = true;
+    _signMeInWithGoogle();
+  }
+  return new Scaffold(
+      appBar: new AppBar(
+          title: const Text('Thing Lists'),
+          actions: <Widget>[
+          ],
+                         ),
+      body: new Center(
+          child: new FlatButton(
+              child: new Text('Sign in with Google'),
+              onPressed: _signMeInWithGoogle)));
+}
+
+Route ListRoute(RouteSettings settings) {
+  print('creating route for ${settings.name}');
+  final String _listname = settings.name.substring(1);
+  final DatabaseReference _ref = _root.child(_listname);
+  return new MaterialPageRoute(
+      settings: settings,
+      builder: (context) => new Scaffold(
+      appBar: new AppBar(
+          title: new Text('$_listname'),
+          actions: <Widget>[
+          ],
+                         ),
+      body: new Center(
+          child: new FlatButton(
+              child: new Text('Example button'),
+              onPressed: () {print('pressed button');}))));
+}
 
 class AnimatedListSample extends StatefulWidget {
   @override
@@ -74,31 +143,36 @@ class _AnimatedListSampleState extends State<AnimatedListSample> {
   @override
   Widget build(BuildContext context) {
     return new MaterialApp(
-      home: new Scaffold(
-        appBar: new AppBar(
-          title: const Text('AnimatedList'),
-          actions: <Widget>[
-            new IconButton(
-              icon: const Icon(Icons.add_circle),
-              onPressed: _insert,
-              tooltip: 'insert a new item',
-            ),
-            new IconButton(
-              icon: const Icon(Icons.remove_circle),
-              onPressed: _remove,
-              tooltip: 'remove the selected item',
-            ),
-          ],
-        ),
-        body: new Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: new AnimatedList(
-            key: _listKey,
-            initialItemCount: _list.length,
-            itemBuilder: _buildItem,
-          ),
-        ),
-      ),
+        onGenerateRoute: ListRoute,
+        routes: <String, WidgetBuilder>{
+          '/': _signInPage,
+          '/list': (BuildContext context) =>
+          new Scaffold(
+              appBar: new AppBar(
+                  title: const Text('AnimatedList'),
+                  actions: <Widget>[
+                    new IconButton(
+                        icon: const Icon(Icons.add_circle),
+                        onPressed: _insert,
+                        tooltip: 'insert a new item',
+                                   ),
+                    new IconButton(
+                        icon: const Icon(Icons.remove_circle),
+                        onPressed: _remove,
+                        tooltip: 'remove the selected item',
+                                   ),
+                  ],
+                                 ),
+              body: new Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: new AnimatedList(
+                      key: _listKey,
+                      initialItemCount: _list.length,
+                      itemBuilder: _buildItem,
+                                          ),
+                                ),
+                       ),
+        },
     );
   }
 }
