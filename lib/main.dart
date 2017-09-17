@@ -85,10 +85,16 @@ class _ListPageState extends State<ListPage> {
       setState(() {
         final iteminfo = event.snapshot.value;
         _items = [];
+        List<Map> things = [];
         if (iteminfo != null) {
           iteminfo.forEach((i,info) {
-            _items.add(i);
+            info['name'] = i;
+            things.add(info);
           });
+          things.sort((a,b) => a['chosen'].compareTo(b['chosen']));
+          things.forEach((thing) {
+                _items.add(thing['name']);
+              });
         }
       });
     });
