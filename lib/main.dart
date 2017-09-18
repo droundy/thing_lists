@@ -77,6 +77,7 @@ class _ListPageState extends State<ListPage> {
   final String listname;
   DatabaseReference _ref;
   List<String> _items = [];
+  Map _keys = {};
   final GlobalKey<AnimatedListState> listKey = new GlobalKey<AnimatedListState>();
 
   _ListPageState({this.listname}) {
@@ -94,6 +95,7 @@ class _ListPageState extends State<ListPage> {
           things.sort((a,b) => a['chosen'].compareTo(b['chosen']));
           things.forEach((thing) {
                 _items.add(thing['name']);
+                _keys[thing['name']] = new ValueKey(thing);
               });
         }
       });
@@ -112,13 +114,14 @@ class _ListPageState extends State<ListPage> {
     _items.forEach((i) {
           print('one item is $i');
           xx.add(new Dismissible(
-                  child: new Card(
+                  child: new Hero(key: new ValueKey(i), child: new Card(
                       child: new ListTile(
                           title: new Text(i),
                           onLongPress: () async {
                             print('selected $i');
                             Navigator.of(context).pushNamed('/$i');
-                          })),
+                          }))),
+                  key: _keys[i],
                   background: new Card(
                       child: new ListTile(title: new Text('')),
                       color: const Color(0xFF005f00)),
