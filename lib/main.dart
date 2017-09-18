@@ -61,7 +61,6 @@ Widget _signInPage(BuildContext context) {
 Route ListRoute(RouteSettings settings) {
   print('creating route for ${settings.name}');
   final String _listname = settings.name.substring(1);
-  final DatabaseReference _ref = _root.child(_listname);
   return new MaterialPageRoute(
       settings: settings,
       builder: (context) => new ListPage(listname: _listname));
