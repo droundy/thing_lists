@@ -117,6 +117,8 @@ class _ListPageState extends State<ListPage> {
                   child: new Hero(key: new ValueKey(i), child: new Card(
                       child: new ListTile(
                           title: new Text(i),
+                          leading: new Icon(Icons.more_vert),
+                          trailing: new Icon(Icons.delete),
                           onLongPress: () async {
                             print('selected $i');
                             Navigator.of(context).pushNamed('/$i');
