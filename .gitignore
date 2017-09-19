@@ -10,3 +10,8 @@ pubspec.lock
 .flutter-plugins
 
 *~
+hires_icon.png
+feature_graphic.png
+ic_launcher.png
+*.tum
+key.properties

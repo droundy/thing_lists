@@ -1,0 +1,14 @@
+| inkscape -d 94 -e android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png icon.svg
+
+| inkscape -d 70.5 -e android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png icon.svg
+
+| inkscape -d 47 -e android/app/src/main/res/mipmap-xhdpi/ic_launcher.png icon.svg
+
+| inkscape -d 35.25 -e android/app/src/main/res/mipmap-hdpi/ic_launcher.png icon.svg
+
+| inkscape -d 23.5 -e android/app/src/main/res/mipmap-mdpi/ic_launcher.png icon.svg
+
+| inkscape -d 72 -e feature_graphic.png feature_graphic.svg
+
+| inkscape -d 251 -e hires_icon.png icon.svg
+
