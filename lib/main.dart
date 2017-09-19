@@ -97,7 +97,7 @@ class _ListPageState extends State<ListPage> {
                 things.add(info);
               }
             });
-            things.sort((a,b) => a['_chosen'].compareTo(b['_chosen']));
+            things.sort((a,b) => a['_next'].compareTo(b['_next']));
             things.forEach((thing) {
                   String t = thing['name'];
                   _items.add(t);
@@ -205,10 +205,11 @@ class _ListPageState extends State<ListPage> {
                       final int offset = data[i]['_chosen'] - oldchosen;
                       data[i]['_next'] = data[i]['_chosen'] + _random.nextInt(offset);
                     } else {
-                      data[i]['_ignored'] = new DateTime.now().millisecondsSinceEpoch;
-                      final int offset = data[i]['_ignored'] - oldchosen;
-                      if (data[i]['_next'] < data[i]['_ignored']) {
-                        data[i]['_next'] = data[i]['_ignored'] + _random.nextInt(4*offset);
+                      final int now = new DateTime.now().millisecondsSinceEpoch;
+                      data[i]['_ignored'] = now;
+                      final int offset = now - oldchosen;
+                      if (data[i]['_next'] < now) {
+                        data[i]['_next'] = now + _random.nextInt(4*offset);
                       } else {
                         data[i]['_next'] = data[i]['_next'] + _random.nextInt(4*offset);
                       }
@@ -221,6 +222,12 @@ class _ListPageState extends State<ListPage> {
         appBar: new AppBar(
             title: new Text('$listname'),
             actions: <Widget>[
+              new IconButton(
+                  icon: const Icon(Icons.search),
+                  tooltip: 'Search',
+                  onPressed: () {
+                print('should search here');
+              })
             ],
                            ),
         body: new ListView(
@@ -263,6 +270,7 @@ Future<String> textInputDialog(BuildContext context, String title, [String value
       child: new AlertDialog(title: new Text(title),
           content: new TextField(
               controller: new TextEditingController(text: value),
+              autofocus: true,
               onChanged: (String newval) {
             foo = newval;
           },
