@@ -207,7 +207,11 @@ class _ListPageState extends State<ListPage> {
                     } else {
                       data[i]['_ignored'] = new DateTime.now().millisecondsSinceEpoch;
                       final int offset = data[i]['_ignored'] - oldchosen;
-                      data[i]['_next'] = oldchosen + _random.nextInt(4*offset);
+                      if (data[i]['_next'] < data[i]['_ignored']) {
+                        data[i]['_next'] = data[i]['_ignored'] + _random.nextInt(4*offset);
+                      } else {
+                        data[i]['_next'] = data[i]['_next'] + _random.nextInt(4*offset);
+                      }
                     }
                     _ref.set(data);
                   },
