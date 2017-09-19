@@ -185,7 +185,7 @@ class _ListPageState extends State<ListPage> {
                                   _root.child(i).remove();
                                 }
                               }),
-                          onLongPress: () async {
+                          onTap: () async {
                             print('selected $i');
                             Navigator.of(context).pushNamed('/$listname/$i'); // nesting!
                           }))),
