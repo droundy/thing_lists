@@ -69,6 +69,11 @@ class ListPage extends StatefulWidget {
   _ListPageState createState() => new _ListPageState(listname: listname);
 }
 
+const doneIcon = const Icon(Icons.done, color: const Color(0xFFFFFFFF));
+const scheduleIcon = const Icon(Icons.schedule, color: const Color(0xFFFFFFFF));
+const doneColor = const Color(0xFF0f9d58);
+const scheduleColor = const Color(0xFFef6c00);
+
 class _ListPageState extends State<ListPage> {
   final String listname;
   DatabaseReference _ref = null;
@@ -186,11 +191,11 @@ class _ListPageState extends State<ListPage> {
                           }))),
                   key: _keys[i],
                   background: new Card(
-                      child: new ListTile(title: new Text('')),
-                      color: const Color(0xFF005f00)),
+                      child: new ListTile(leading: doneIcon, trailing: doneIcon),
+                      color: doneColor),
                   secondaryBackground: new Card(
-                      child: new ListTile(title: new Text('')),
-                      color: const Color(0xFF8f7f00)),
+                      child: new ListTile(leading: scheduleIcon, trailing: scheduleIcon),
+                      color: scheduleColor),
                   onDismissed: (direction) async {
                     print('dismissed $i in $direction');
                     Map data = (await _ref.once()).value;
