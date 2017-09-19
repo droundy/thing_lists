@@ -81,6 +81,7 @@ class _ListPageState extends State<ListPage> {
   Map _keys = {};
   Map _colors = {};
   final GlobalKey<AnimatedListState> listKey = new GlobalKey<AnimatedListState>();
+  SearchBar searchBar;
 
   _set_myself_up() {
     if (_root != null && _ref == null) {
@@ -114,6 +115,10 @@ class _ListPageState extends State<ListPage> {
 
   _ListPageState({this.listname}) {
     _set_myself_up();
+    searchBar = new SearchBar(
+        setState: setState,
+        onSubmitted: print,
+        buildDefaultAppBar: buildAppBar);
   }
 
   Color _color(String i) {
@@ -125,6 +130,12 @@ class _ListPageState extends State<ListPage> {
 
   @override
   void initState() {
+  }
+
+  AppBar buildAppBar(BuildContext context) {
+    return new AppBar(
+            title: new Text('$listname'),
+            actions: <Widget>[searchBar.getSearchAction(context)]);
   }
 
   @override
@@ -219,17 +230,7 @@ class _ListPageState extends State<ListPage> {
                                  ));
         });
     return new Scaffold(
-        appBar: new AppBar(
-            title: new Text('$listname'),
-            actions: <Widget>[
-              new IconButton(
-                  icon: const Icon(Icons.search),
-                  tooltip: 'Search',
-                  onPressed: () {
-                print('should search here');
-              })
-            ],
-                           ),
+        appBar: searchBar.build(context),
         body: new ListView(
             shrinkWrap: true,
             padding: const EdgeInsets.all(20.0),
@@ -309,4 +310,106 @@ Future<bool> confirmDialog(BuildContext context, String title, String action) as
               Navigator.pop(context, true);
             }),
           ]));
+}
+
+
+class SearchBar {
+  /// What the hintText on the search bar should be. Defaults to 'Search'.
+  final String hintText;
+  /// A callback which should return an AppBar that is displayed until search is started. One of the actions in this AppBar should be a search button which you obtain from SearchBar.getSearchAction(). This will be called every time search is ended, etc. (like a build method on a widget)
+  final AppBarCallback buildDefaultAppBar;
+  /// A void callback which takes a string as an argument, this is fired every time the search is submitted. Do what you want with the result.
+  final TextFieldSubmitCallback onSubmitted;
+  /// Since this should be inside of a State class, just pass setState to this.
+  final SetStateCallback setState;
+  /// The controller to be used in the textField.
+  final TextEditingController controller;
+
+  /// Whether search is currently active.
+  bool _isSearching = false;
+  /// The last built default AppBar used for colors and such.
+  AppBar _defaultAppBar;
+
+  SearchBar({
+    @required this.setState,
+    @required this.buildDefaultAppBar,
+    this.onSubmitted,
+    this.controller,
+    this.hintText = 'Search',
+  });
+
+  void beginSearch(context) {
+    ModalRoute.of(context).addLocalHistoryEntry(new LocalHistoryEntry(
+      onRemove: () {
+        setState(() {
+          _isSearching = false;
+        });
+      }
+    ));
+
+    setState(() {
+      _isSearching = true;
+    });
+  }
+
+  AppBar buildAppBar(BuildContext context) {
+    _defaultAppBar = buildDefaultAppBar(context);
+
+    return _defaultAppBar;
+  }
+
+  AppBar buildSearchBar(BuildContext context) {
+    ThemeData theme = Theme.of(context);
+
+    return new AppBar(
+      leading: new BackButton(color: null), // Don't provide a color (make it white).
+      backgroundColor: _defaultAppBar.backgroundColor,
+      title: new TextField(
+        key: new Key('SearchBarTextField'),
+        keyboardType: TextInputType.text,
+        style: new TextStyle(
+          color: Colors.white70,
+          fontSize: 16.0
+        ),
+        decoration: new InputDecoration(
+          hintText: hintText,
+          hintStyle: new TextStyle(
+            color: Colors.white70,
+            fontSize: 16.0
+          ),
+          hideDivider: true
+        ),
+        onSubmitted: (String val) async {
+          await Navigator.maybePop(context);
+
+          onSubmitted(val);
+        },
+        autofocus: true,
+        controller: controller,
+      ),
+      /*actions: <Widget>[
+        new IconButton(
+            icon: new Icon(Icons.send),
+            onPressed: null
+        )
+      ]*/
+    );
+  }
+
+  /// Returns an [IconButton] suitable for an Action
+  ///
+  /// Put this inside your [buildDefaultAppBar] method!
+  IconButton getSearchAction(BuildContext context) {
+    return new IconButton(
+      icon: new Icon(Icons.search),
+      onPressed: () {
+        beginSearch(context);
+      }
+    );
+  }
+
+  /// Returns an AppBar based on the value of [_isSearching]
+  AppBar build(BuildContext context) {
+    return _isSearching ? buildSearchBar(context) : buildAppBar(context);
+  }
 }
