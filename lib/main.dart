@@ -16,51 +16,46 @@ import 'package:flutter_color_picker/flutter_color_picker.dart';
 import 'package:share/share.dart';
 
 final GoogleSignIn _googleSignIn = new GoogleSignIn();
-FirebaseUser _user = null;
 DatabaseReference _root = null;
 final FirebaseAuth _auth = FirebaseAuth.instance;
 final _random = new Random(); // generates a new Random object
 
-bool _have_signed_in_yet = false;
+// The following *should* enable concurrent calls to ensureSignedIn without
+// doing excess work.
+Future<GoogleSignInAccount> _googleUser = null;
+FirebaseUser _user = null;
+Future<FirebaseUser> _userFuture = null;
 
-Widget _signInPage(BuildContext context) {
-  Future<Null> _signMeInWithGoogle() async {
-    print('I am signing in with google.');
-    final GoogleSignInAccount googleUser = await _googleSignIn.signIn();
-    print('I have signed in...');
+Future<Null> ensureSignedIn() async {
+  _user = await _auth.currentUser();
+  if (_user == null) {
+    if (_googleUser == null) {
+      print('I am signing in with google.');
+      _googleUser = _googleSignIn.signIn();
+    }
+    final GoogleSignInAccount googleUser = await _googleUser;
     final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-    _user = await _auth.signInWithGoogle(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken);
-    print('I have signed in with Firebase...');
-    assert(_user.email != null);
-    assert(_user.displayName != null);
-    assert(_user.uid != null);
-    assert(!_user.isAnonymous);
+    if (_userFuture == null) {
+      _userFuture = _auth.signInWithGoogle(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken);
+      print('I have signed in with Firebase...');
+    }
+    _user = await _userFuture;
+  }
+  if (_root == null) {
     _root = FirebaseDatabase.instance.reference().child(_user.uid);
     _root.keepSynced(true);
-    print('I am going to the lists!');
-    Navigator.of(context).pushNamed('/_');
+    FirebaseDatabase.instance.setPersistenceEnabled(true);
   }
-  if (!_have_signed_in_yet) {
-    _have_signed_in_yet = true;
-    _signMeInWithGoogle();
-  }
-  return new Scaffold(
-      appBar: new AppBar(
-          title: const Text('Thing Lists'),
-          actions: <Widget>[
-          ],
-                         ),
-      body: new Center(
-          child: new FlatButton(
-              child: new Text('Sign in with Google'),
-              onPressed: _signMeInWithGoogle)));
 }
 
 Route ListRoute(RouteSettings settings) {
-  print('creating route for ${settings.name}');
-  final String _listname = settings.name.substring(1);
+  String _listname = settings.name.substring(1);
+  while (_listname.startsWith('/')) {
+    _listname = _listname.substring(1);
+  }
+  print('creating route for ${settings.name} with listname "$_listname"');
   return new MaterialPageRoute(
       settings: settings,
       builder: (context) => new ListPage(listname: _listname));
@@ -76,36 +71,44 @@ class ListPage extends StatefulWidget {
 
 class _ListPageState extends State<ListPage> {
   final String listname;
-  DatabaseReference _ref;
+  DatabaseReference _ref = null;
   List<String> _items = [];
   Map _keys = {};
   Map _colors = {};
   final GlobalKey<AnimatedListState> listKey = new GlobalKey<AnimatedListState>();
 
-  _ListPageState({this.listname}) {
-    _ref = _root.child(listname);
-    _ref.onValue.listen((Event event) {
-      setState(() {
-        final iteminfo = event.snapshot.value;
-        _items = [];
-        List<Map> things = [];
-        if (iteminfo != null) {
-          iteminfo.forEach((i,info) {
-            info['name'] = i;
-            things.add(info);
-          });
-          things.sort((a,b) => a['chosen'].compareTo(b['chosen']));
-          things.forEach((thing) {
-                String t = thing['name'];
-                _items.add(t);
-                _keys[t] = new ValueKey(thing);
-                if (thing.containsKey('color')) {
-                  _colors[t] = new Color(thing['color']);
-                }
-              });
-        }
+  _set_myself_up() {
+    if (_root != null && _ref == null) {
+      _ref = _root.child(listname);
+      _ref.onValue.listen((Event event) {
+        setState(() {
+          final iteminfo = event.snapshot.value;
+          _items = [];
+          List<Map> things = [];
+          if (iteminfo != null) {
+            iteminfo.forEach((i,info) {
+              if (info is Map && info.containsKey('_next') && info.containsKey('_chosen')) {
+                info['name'] = i;
+                things.add(info);
+              }
+            });
+            things.sort((a,b) => a['_chosen'].compareTo(b['_chosen']));
+            things.forEach((thing) {
+                  String t = thing['name'];
+                  _items.add(t);
+                  _keys[t] = new ValueKey(thing);
+                  if (thing.containsKey('color')) {
+                    _colors[t] = new Color(thing['color']);
+                  }
+                });
+          }
+        });
       });
-    });
+    }
+  }
+
+  _ListPageState({this.listname}) {
+    _set_myself_up();
   }
 
   Color _color(String i) {
@@ -117,12 +120,15 @@ class _ListPageState extends State<ListPage> {
 
   @override
   void initState() {
-    FirebaseDatabase.instance.setPersistenceEnabled(true);
-    FirebaseDatabase.instance.setPersistenceCacheSizeBytes(1000000);
   }
 
   @override
   Widget build(BuildContext context) {
+    ensureSignedIn().then((x) {
+      setState(() {
+        _set_myself_up();
+      });
+    });
     List<Widget> xx = [];
     _items.forEach((i) {
           Widget menu = new PopupMenuButton<String>(
@@ -151,11 +157,6 @@ class _ListPageState extends State<ListPage> {
                     Map data = (await _ref.child(i).once()).value;
                     _ref.child(newname).set(data);
                     _ref.child(i).remove();
-                    DataSnapshot xx = (await _root.child(i).once());
-                    if (xx != null && xx.value != null) {
-                      _root.child(newname).set(xx.value);
-                      _root.child(i).remove();
-                    }
                   }
                 }
               });
@@ -181,7 +182,7 @@ class _ListPageState extends State<ListPage> {
                               }),
                           onLongPress: () async {
                             print('selected $i');
-                            Navigator.of(context).pushNamed('/$i');
+                            Navigator.of(context).pushNamed('/$listname/$i'); // nesting!
                           }))),
                   key: _keys[i],
                   background: new Card(
@@ -193,10 +194,15 @@ class _ListPageState extends State<ListPage> {
                   onDismissed: (direction) async {
                     print('dismissed $i in $direction');
                     Map data = (await _ref.once()).value;
+                    final int oldchosen = data[i]['_chosen'];
                     if (direction == DismissDirection.startToEnd) {
-                      data[i]['chosen'] = new DateTime.now().millisecondsSinceEpoch;
+                      data[i]['_chosen'] = new DateTime.now().millisecondsSinceEpoch;
+                      final int offset = data[i]['_chosen'] - oldchosen;
+                      data[i]['_next'] = data[i]['_chosen'] + _random.nextInt(offset);
                     } else {
-                      data[i]['ignored'] = new DateTime.now().millisecondsSinceEpoch;
+                      data[i]['_ignored'] = new DateTime.now().millisecondsSinceEpoch;
+                      final int offset = data[i]['_ignored'] - oldchosen;
+                      data[i]['_next'] = oldchosen + _random.nextInt(4*offset);
                     }
                     _ref.set(data);
                   },
@@ -221,9 +227,12 @@ class _ListPageState extends State<ListPage> {
                 if (old.value != null) {
                   data = old.value;
                 }
+                final int now = new DateTime.now().millisecondsSinceEpoch;
+                const int day = 24*60*60*1000;
                 data[newitem] = {
-                  'chosen': new DateTime.now().millisecondsSinceEpoch,
-                  'ignored': 0,
+                  '_chosen': now,
+                  '_ignored': 0,
+                  '_next': now+_random.nextInt(2*day),
                 };
                 _ref.set(data);
                 print('got $newitem');
@@ -236,11 +245,7 @@ class _ListPageState extends State<ListPage> {
 }
 
 void main() {
-  runApp(new MaterialApp(
-          onGenerateRoute: ListRoute,
-          routes: <String, WidgetBuilder>{
-            '/': _signInPage,
-          }));
+  runApp(new MaterialApp(onGenerateRoute: ListRoute));
 }
 
 Future<String> textInputDialog(BuildContext context, String title, [String value]) async {
