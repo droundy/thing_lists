@@ -80,7 +80,32 @@ class _ListPageState extends State<ListPage> {
   List<String> _items = [];
   Map _keys = {};
   Map _colors = {};
+  String searching = null;
   final GlobalKey<AnimatedListState> listKey = new GlobalKey<AnimatedListState>();
+
+  _order_items(Map iteminfo) {
+    _items = [];
+    List<Map> things = [];
+    if (iteminfo != null) {
+      iteminfo.forEach((i,info) {
+        if (info is Map && info.containsKey('_next') && info.containsKey('_chosen')) {
+          if (searching == null || matches(searching, {i: info})) {
+            info['name'] = i;
+            things.add(info);
+          }
+        }
+      });
+      things.sort((a,b) => a['_next'].compareTo(b['_next']));
+      things.forEach((thing) {
+            String t = thing['name'];
+            _items.add(t);
+            _keys[t] = new ValueKey(thing);
+            if (thing.containsKey('color')) {
+              _colors[t] = new Color(thing['color']);
+            }
+          });
+    }
+  }
 
   _set_myself_up() {
     if (_root != null && _ref == null) {
@@ -88,25 +113,7 @@ class _ListPageState extends State<ListPage> {
       _ref.onValue.listen((Event event) {
         setState(() {
           final iteminfo = event.snapshot.value;
-          _items = [];
-          List<Map> things = [];
-          if (iteminfo != null) {
-            iteminfo.forEach((i,info) {
-              if (info is Map && info.containsKey('_next') && info.containsKey('_chosen')) {
-                info['name'] = i;
-                things.add(info);
-              }
-            });
-            things.sort((a,b) => a['_next'].compareTo(b['_next']));
-            things.forEach((thing) {
-                  String t = thing['name'];
-                  _items.add(t);
-                  _keys[t] = new ValueKey(thing);
-                  if (thing.containsKey('color')) {
-                    _colors[t] = new Color(thing['color']);
-                  }
-                });
-          }
+          _order_items(iteminfo);
         });
       });
     }
@@ -218,18 +225,52 @@ class _ListPageState extends State<ListPage> {
                   },
                                  ));
         });
+    AppBar appbar = new AppBar(
+        title: new Text('$listname'),
+        actions: <Widget>[
+          new IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: 'Search',
+              onPressed: () {
+            print('should search here');
+            setState(() {
+              searching = '';
+            });
+          })
+        ]);
+    if (searching != null) {
+      appbar = new AppBar(
+          leading: new BackButton(),
+          title: new TextField(
+              keyboardType: TextInputType.text,
+              style: new TextStyle(fontSize: 16.0),
+              decoration: new InputDecoration(
+                  hintText: 'Search $listname things',
+                  hintStyle: new TextStyle(fontSize: 16.0),
+                  hideDivider: true),
+              onChanged: (String val) async {
+                print('search for $val compare $searching');
+                if (val != null && val != searching && val != '') {
+                  searching = val;
+                  final iteminfo = (await _ref.once()).value;
+                  _order_items(iteminfo);
+                }
+              },
+              autofocus: true),
+          actions: <Widget>[
+            new IconButton(
+                icon: new Icon(Icons.cancel),
+                onPressed: () {
+              setState(() async {
+                searching = null;
+                final iteminfo = (await _ref.once()).value;
+                _order_items(iteminfo);
+              });
+            })
+          ]);
+    }
     return new Scaffold(
-        appBar: new AppBar(
-            title: new Text('$listname'),
-            actions: <Widget>[
-              new IconButton(
-                  icon: const Icon(Icons.search),
-                  tooltip: 'Search',
-                  onPressed: () {
-                print('should search here');
-              })
-            ],
-                           ),
+        appBar: appbar,
         body: new ListView(
             shrinkWrap: true,
             padding: const EdgeInsets.all(20.0),
@@ -309,4 +350,17 @@ Future<bool> confirmDialog(BuildContext context, String title, String action) as
               Navigator.pop(context, true);
             }),
           ]));
+}
+
+bool matches_string(String searching, String data) {
+  return data.toLowerCase().contains(searching);
+}
+
+bool matches(String searching, data) {
+  if (data is! Map) return false;
+  searching = searching.toLowerCase();
+  if (data.keys.any((k) => matches_string(searching, k))) {
+    return true;
+  }
+  return data.values.any((v) => matches(searching, v));
 }
