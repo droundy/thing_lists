@@ -204,7 +204,6 @@ class _ListPageState extends State<ListPage> {
                       child: new ListTile(leading: scheduleIcon, trailing: scheduleIcon),
                       color: scheduleColor),
                   onDismissed: (direction) async {
-                    print('dismissed $i in $direction');
                     Map data = (await _ref.once()).value;
                     final int oldchosen = data[i]['_chosen'];
                     if (direction == DismissDirection.startToEnd) {
