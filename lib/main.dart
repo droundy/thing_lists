@@ -157,7 +157,7 @@ class _ListPageState extends State<ListPage> {
                 if (selected == 'color') {
                   Color color = await showDialog(
                       context: context,
-                      child: new PrimaryColorPickerDialog());
+                      child: pastelPicker(context));
                   if (color != null) {
                     print('color: ${color.value}');
                     await _ref.child(i).child('color').set(color.value);
@@ -362,4 +362,18 @@ bool matches(String searching, data) {
     return true;
   }
   return data.values.any((v) => matches(searching, v));
+}
+
+ColorPickerDialog pastelPicker(BuildContext context) {
+  List<Color> cs = new List.from(Colors.primaries);
+  for (int i=0; i<cs.length; i++) {
+    cs[i] = cs[i][200];
+  }
+  cs.add(const Color(0xFFdddddd));
+  print('cs length ${cs.length}');
+  ColorPickerGrid grid = new ColorPickerGrid(
+      colors: cs,
+      onTap: (Color color) { Navigator.pop(context, color); },
+      rounded: false);
+  return new ColorPickerDialog(body: grid);
 }
