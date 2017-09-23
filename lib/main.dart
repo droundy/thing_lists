@@ -212,10 +212,10 @@ class _ListPageState extends State<ListPage> {
                           }))),
                   key: _keys[i],
                   background: new Card(
-                      child: new ListTile(leading: doneIcon, trailing: doneIcon),
+                      child: new ListTile(leading: doneIcon),
                       color: doneColor),
                   secondaryBackground: new Card(
-                      child: new ListTile(leading: scheduleIcon, trailing: scheduleIcon),
+                      child: new ListTile(trailing: scheduleIcon),
                       color: scheduleColor),
                   onDismissed: (direction) async {
                     Map data = (await _ref.once()).value;
