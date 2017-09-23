@@ -305,6 +305,7 @@ class _ListPageState extends State<ListPage> {
         // },
         //     query: _ref),
         body: new ListView(
+            key: new UniqueKey(),
             shrinkWrap: true,
             children: xx),
         floatingActionButton: new FloatingActionButton(
