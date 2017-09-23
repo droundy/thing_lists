@@ -157,10 +157,8 @@ class _ListPageState extends State<ListPage> {
   @override
   Widget build(BuildContext context) {
     ensureSignedIn().then((x) {
-      setState(() {
-        _setMyselfUp();
-      });
-    });
+          _setMyselfUp();
+        });
     List<Widget> xx = [];
     _items.forEach((i) {
           Widget menu = new PopupMenuButton<String>(
