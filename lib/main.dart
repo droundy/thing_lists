@@ -27,18 +27,18 @@ import 'package:firebase_database/firebase_database.dart';
 
 import 'package:flutter_color_picker/flutter_color_picker.dart';
 
-import 'package:share/share.dart';
+// import 'package:share/share.dart';
 
 final GoogleSignIn _googleSignIn = new GoogleSignIn();
-DatabaseReference _root = null;
+DatabaseReference _root;
 final FirebaseAuth _auth = FirebaseAuth.instance;
 final _random = new Random(); // generates a new Random object
 
 // The following *should* enable concurrent calls to ensureSignedIn without
 // doing excess work.
-Future<GoogleSignInAccount> _googleUser = null;
-FirebaseUser _user = null;
-Future<FirebaseUser> _userFuture = null;
+Future<GoogleSignInAccount> _googleUser;
+FirebaseUser _user;
+Future<FirebaseUser> _userFuture;
 
 Future<Null> ensureSignedIn() async {
   _user = await _auth.currentUser();
@@ -64,7 +64,7 @@ Future<Null> ensureSignedIn() async {
   }
 }
 
-Route ListRoute(RouteSettings settings) {
+Route listRoute(RouteSettings settings) {
   String _listname = settings.name.substring(1);
   while (_listname.startsWith('/')) {
     _listname = _listname.substring(1);
@@ -90,14 +90,14 @@ const scheduleColor = const Color(0xFFef6c00);
 
 class _ListPageState extends State<ListPage> {
   final String listname;
-  DatabaseReference _ref = null;
+  DatabaseReference _ref;
   List<String> _items = [];
   Map _keys = {};
   Map _colors = {};
-  String searching = null;
+  String searching ;
   final GlobalKey<AnimatedListState> listKey = new GlobalKey<AnimatedListState>();
 
-  _order_items(Map iteminfo) {
+  _orderItems(Map iteminfo) {
     _items = [];
     List<Map> things = [];
     if (iteminfo != null) {
@@ -121,20 +121,20 @@ class _ListPageState extends State<ListPage> {
     }
   }
 
-  _set_myself_up() {
+  _setMyselfUp() {
     if (_root != null && _ref == null) {
       _ref = _root.child(listname);
       _ref.onValue.listen((Event event) {
         setState(() {
           final iteminfo = event.snapshot.value;
-          _order_items(iteminfo);
+          _orderItems(iteminfo);
         });
       });
     }
   }
 
   _ListPageState({this.listname}) {
-    _set_myself_up();
+    _setMyselfUp();
   }
 
   Color _color(String i) {
@@ -146,13 +146,14 @@ class _ListPageState extends State<ListPage> {
 
   @override
   void initState() {
+    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     ensureSignedIn().then((x) {
       setState(() {
-        _set_myself_up();
+        _setMyselfUp();
       });
     });
     List<Widget> xx = [];
@@ -188,7 +189,7 @@ class _ListPageState extends State<ListPage> {
               });
 
           xx.add(new Dismissible(
-                  child: new Hero(key: new ValueKey(i), child: new Card(
+                  child: new Hero(key: new ValueKey(i), tag: i, child: new Card(
                       color: _color(i),
                       child: new ListTile(
                           title: new Text(i),
@@ -266,7 +267,7 @@ class _ListPageState extends State<ListPage> {
                 if (val != null && val != searching && val != '') {
                   searching = val;
                   final iteminfo = (await _ref.once()).value;
-                  _order_items(iteminfo);
+                  _orderItems(iteminfo);
                 }
               },
               autofocus: true),
@@ -277,13 +278,18 @@ class _ListPageState extends State<ListPage> {
               setState(() async {
                 searching = null;
                 final iteminfo = (await _ref.once()).value;
-                _order_items(iteminfo);
+                _orderItems(iteminfo);
               });
             })
           ]);
     }
     return new Scaffold(
         appBar: appbar,
+        // body: new FirebaseAnimatedList(
+        //     itemBuilder: (BuildContext context, DataSnapshot snapshot, Animation<double> animation) {
+        //   return new Text('item');
+        // },
+        //     query: _ref),
         body: new ListView(
             shrinkWrap: true,
             padding: const EdgeInsets.all(20.0),
@@ -315,7 +321,7 @@ class _ListPageState extends State<ListPage> {
 }
 
 void main() {
-  runApp(new MaterialApp(onGenerateRoute: ListRoute));
+  runApp(new MaterialApp(onGenerateRoute: listRoute));
 }
 
 Future<String> textInputDialog(BuildContext context, String title, [String value]) async {
@@ -365,23 +371,24 @@ Future<bool> confirmDialog(BuildContext context, String title, String action) as
           ]));
 }
 
-bool matches_string(String searching, String data) {
+bool matchesString(String searching, String data) {
   return data.toLowerCase().contains(searching);
 }
 
 bool matches(String searching, data) {
   if (data is! Map) return false;
   searching = searching.toLowerCase();
-  if (data.keys.any((k) => matches_string(searching, k))) {
+  if (data.keys.any((k) => matchesString(searching, k))) {
     return true;
   }
   return data.values.any((v) => matches(searching, v));
 }
 
 ColorPickerDialog pastelPicker(BuildContext context) {
+  List<MaterialColor> primaries = Colors.primaries;
   List<Color> cs = new List.from(Colors.primaries);
   for (int i=0; i<cs.length; i++) {
-    cs[i] = cs[i][200];
+    cs[i] = primaries[i][200];
   }
   cs.add(const Color(0xFFdddddd));
   print('cs length ${cs.length}');
