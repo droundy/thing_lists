@@ -192,28 +192,36 @@ class _ListPageState extends State<ListPage> {
               });
 
           xx.add(new Dismissible(
-                  child: new Hero(tag: i, child: new Card(
+                  child: new Card(
                       color: _color(i),
-                      child: new ListTile(
-                          title: new Text(i),
-                          leading: menu, // const Icon(Icons.more_vert),
-                          // trailing: const Icon(Icons.delete),
-                          trailing: new IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () async {
-                                final bool confirmed = await confirmDialog(context,
-                                    'Really delete $i?', 'DELETE');
-                                print('confirmed is $confirmed');
-                                if (confirmed) {
-                                  print('am deleting $i');
-                                  _ref.child(i).remove();
-                                  _root.child(i).remove();
-                                }
-                              }),
-                          onTap: () async {
-                            print('selected $i');
-                            Navigator.of(context).pushNamed('/$listname/$i'); // nesting!
-                          }))),
+                      child: new Row(
+                          children: <Widget>[
+                            menu,
+                            new Expanded(child:
+                            new SizedBox(
+                                height: 30 + 0.35*i.length,
+                                child: new FlatButton(
+                                    // child: new FittedBox(
+                                    //     fit: BoxFit.contain,
+                                    //     child: new Text(i, maxLines: 30)),
+                                    child: new Text(i, maxLines: 30),
+                                    onPressed: () async {
+                                      print('selected $i');
+                                      Navigator.of(context).pushNamed('/$listname/$i'); // nesting!
+                                    }))),
+                            new IconButton(
+                                icon: const Icon(Icons.delete),
+                                onPressed: () async {
+                                  final bool confirmed = await confirmDialog(context,
+                                      'Really delete $i?', 'DELETE');
+                                  print('confirmed is $confirmed');
+                                  if (confirmed) {
+                                    print('am deleting $i');
+                                    _ref.child(i).remove();
+                                    _root.child(i).remove();
+                                  }
+                                }),
+                          ])),
                   key: _keys[i],
                   background: new Card(
                       child: new ListTile(leading: doneIcon),
