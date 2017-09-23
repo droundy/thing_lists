@@ -189,7 +189,7 @@ class _ListPageState extends State<ListPage> {
               });
 
           xx.add(new Dismissible(
-                  child: new Hero(key: new ValueKey(i), tag: i, child: new Card(
+                  child: new Hero(tag: i, child: new Card(
                       color: _color(i),
                       child: new ListTile(
                           title: new Text(i),
