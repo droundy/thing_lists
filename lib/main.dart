@@ -300,7 +300,6 @@ class _ListPageState extends State<ListPage> {
         //     query: _ref),
         body: new ListView(
             shrinkWrap: true,
-            padding: const EdgeInsets.all(20.0),
             children: xx),
         floatingActionButton: new FloatingActionButton(
             onPressed: () async {
