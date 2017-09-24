@@ -7,3 +7,4 @@ An app for lists of things.
 ## 0.0.3
 
 - Use pastel colors for easier legibility.
+- Postpone more aggressively.
