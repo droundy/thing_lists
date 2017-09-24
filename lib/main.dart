@@ -127,11 +127,8 @@ class _ListPageState extends State<ListPage> {
       _ref = _root.child(listname);
       _ref.onValue.listen((Event event) {
         if (mounted) {
-          print('about to setState on $listname');
-          setState(() {
-            final iteminfo = event.snapshot.value;
-            _orderItems(iteminfo);
-          });
+          final iteminfo = event.snapshot.value;
+          _orderItems(iteminfo);
         } else {
           _ref = null;
         }
