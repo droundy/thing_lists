@@ -18,7 +18,6 @@
 
 import 'dart:async';
 import 'dart:math';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:google_sign_in/google_sign_in.dart';
@@ -101,23 +100,25 @@ class _ListPageState extends State<ListPage> {
     _items = [];
     List<Map> things = [];
     if (iteminfo != null) {
-      iteminfo.forEach((i,info) {
-        if (info is Map && info.containsKey('_next') && info.containsKey('_chosen')) {
-          if (searching == null || matches(searching, {i: info})) {
-            info['name'] = i;
-            things.add(info);
-          }
-        }
-      });
-      things.sort((a,b) => a['_next'].compareTo(b['_next']));
-      things.forEach((thing) {
-            String t = thing['name'];
-            _items.add(t);
-            _keys[t] = new ValueKey(thing);
-            if (thing.containsKey('color')) {
-              _colors[t] = new Color(thing['color']);
+      setState(() {
+        iteminfo.forEach((i,info) {
+          if (info is Map && info.containsKey('_next') && info.containsKey('_chosen')) {
+            if (searching == null || matches(searching, {i: info})) {
+              info['name'] = i;
+              things.add(info);
             }
-          });
+          }
+        });
+        things.sort((a,b) => a['_next'].compareTo(b['_next']));
+        things.forEach((thing) {
+              String t = thing['name'];
+              _items.add(t);
+              _keys[t] = new ValueKey(thing);
+              if (thing.containsKey('color')) {
+                _colors[t] = new Color(thing['color']);
+              }
+            });
+      });
     }
   }
 
@@ -277,7 +278,7 @@ class _ListPageState extends State<ListPage> {
                   hintStyle: new TextStyle(fontSize: 16.0),
                   hideDivider: true),
               onChanged: (String val) async {
-                print('search for $val compare $searching');
+            // print('search for $val compare $searching');
                 if (val != null && val != searching && val != '') {
                   searching = val;
                   final iteminfo = (await _ref.once()).value;
@@ -289,10 +290,11 @@ class _ListPageState extends State<ListPage> {
             new IconButton(
                 icon: new Icon(Icons.cancel),
                 onPressed: () {
-              setState(() async {
+              setState(() {
                 searching = null;
-                final iteminfo = (await _ref.once()).value;
-                _orderItems(iteminfo);
+                _ref.once().then((xx) {
+                      _orderItems(xx.value);
+                    });
               });
             })
           ]);
@@ -386,13 +388,17 @@ Future<bool> confirmDialog(BuildContext context, String title, String action) as
 }
 
 bool matchesString(String searching, String data) {
-  return data.toLowerCase().contains(searching);
+  if (!data.startsWith('_') && data.toLowerCase().contains(searching)) {
+    // print(' "$searching" matches "$data"');
+    return true;
+  }
+  return false;
 }
 
 bool matches(String searching, data) {
   if (data is! Map) return false;
   searching = searching.toLowerCase();
-  if (data.keys.any((k) => matchesString(searching, k))) {
+  if (data.keys.any((k) => data[k] is Map && matchesString(searching, k))) {
     return true;
   }
   return data.values.any((v) => matches(searching, v));
