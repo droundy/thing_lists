@@ -233,18 +233,30 @@ class _ListPageState extends State<ListPage> {
                     });
                     Map data = (await _ref.once()).value;
                     final int oldchosen = data[i]['_chosen'];
+                    final int oldnext = data[i]['_next'];
+                    final int now = new DateTime.now().millisecondsSinceEpoch;
+                    const int day = 24*60*60*1000;
+                    int nextone = oldnext + 1000*day;
+                    data.forEach((k,v) {
+                      if (v is Map && v.containsKey('_next') &&
+                          v['_next'] > oldnext && v['_next'] < nextone) {
+                        nextone = v['_next'];
+                      }
+                    });
+                    if (nextone == oldnext + 1000*day) {
+                      nextone = now;
+                    }
                     if (direction == DismissDirection.startToEnd) {
-                      data[i]['_chosen'] = new DateTime.now().millisecondsSinceEpoch;
+                      data[i]['_chosen'] = now;
                       final int offset = data[i]['_chosen'] - oldchosen;
                       data[i]['_next'] = data[i]['_chosen'] + _random.nextInt(offset);
                     } else {
-                      final int now = new DateTime.now().millisecondsSinceEpoch;
                       data[i]['_ignored'] = now;
-                      final int offset = now - oldchosen;
+                      final int offset = max(now - oldchosen, nextone - oldchosen);
                       if (data[i]['_next'] < now) {
-                        data[i]['_next'] = now + _random.nextInt(4*offset);
+                        data[i]['_next'] = now + offset + _random.nextInt(2*offset);
                       } else {
-                        data[i]['_next'] = data[i]['_next'] + _random.nextInt(4*offset);
+                        data[i]['_next'] = data[i]['_next'] + offset + _random.nextInt(2*offset);
                       }
                     }
                     _ref.set(data);
