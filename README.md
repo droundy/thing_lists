@@ -8,3 +8,4 @@ An app for lists of things.
 
 - Use pastel colors for easier legibility.
 - Postpone more aggressively.
+- Fix bug in wrapping things with very long names.
