@@ -196,17 +196,12 @@ class _ListPageState extends State<ListPage> {
                           children: <Widget>[
                             menu,
                             new Expanded(child:
-                            new SizedBox(
-                                height: 30 + 0.35*i.length,
-                                child: new FlatButton(
-                                    // child: new FittedBox(
-                                    //     fit: BoxFit.contain,
-                                    //     child: new Text(i, maxLines: 30)),
-                                    child: new Text(i, maxLines: 30),
-                                    onPressed: () async {
+                                new InkWell(
+                                    child: new Text(i),
+                                    onTap: () async {
                                       print('selected $i');
-                                      Navigator.of(context).pushNamed('/$listname/$i'); // nesting!
-                                    }))),
+                                      Navigator.of(context).pushNamed('/$listname/$i');
+                                    })),
                             new IconButton(
                                 icon: const Icon(Icons.delete),
                                 onPressed: () async {
