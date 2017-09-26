@@ -197,7 +197,9 @@ class _ListPageState extends State<ListPage> {
                             menu,
                             new Expanded(child:
                                 new InkWell(
-                                    child: new Text(i),
+                                    child: new Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 10.0),
+                                        child: new Text(i)),
                                     onTap: () async {
                                       print('selected $i');
                                       Navigator.of(context).pushNamed('/$listname/$i');
@@ -310,8 +312,7 @@ class _ListPageState extends State<ListPage> {
         // },
         //     query: _ref),
         body: new ListView(
-            key: new UniqueKey(),
-            shrinkWrap: true,
+            // key: new UniqueKey(),
             children: xx),
         floatingActionButton: new FloatingActionButton(
             onPressed: () async {
