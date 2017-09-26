@@ -211,7 +211,6 @@ class _ListPageState extends State<ListPage> {
                                   if (confirmed) {
                                     print('am deleting $i');
                                     _ref.child(i).remove();
-                                    _root.child(i).remove();
                                   }
                                 }),
                           ])),
