@@ -6,6 +6,8 @@ An app for lists of things.
 
 ## 0.0.4
 
+- Make menus work again.
+
 ## 0.0.3
 
 - Use pastel colors for easier legibility.
