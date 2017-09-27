@@ -47,11 +47,11 @@ Future<Null> ensureSignedIn() async {
       _googleUser = _googleSignIn.signIn();
     }
     final GoogleSignInAccount googleUser = await _googleUser;
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
     if (_userFuture == null) {
       _userFuture = _auth.signInWithGoogle(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken);
+          accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
       print('I have signed in with Firebase...');
     }
     _user = await _userFuture;
@@ -93,31 +93,34 @@ class _ListPageState extends State<ListPage> {
   List<String> _items = [];
   Map _keys = {};
   Map _colors = {};
-  String searching ;
-  final GlobalKey<AnimatedListState> listKey = new GlobalKey<AnimatedListState>();
+  String searching;
+  final GlobalKey<AnimatedListState> listKey =
+      new GlobalKey<AnimatedListState>();
 
   _orderItems(Map iteminfo) {
     _items = [];
     List<Map> things = [];
     if (iteminfo != null) {
       setState(() {
-        iteminfo.forEach((i,info) {
-          if (info is Map && info.containsKey('_next') && info.containsKey('_chosen')) {
+        iteminfo.forEach((i, info) {
+          if (info is Map &&
+              info.containsKey('_next') &&
+              info.containsKey('_chosen')) {
             if (searching == null || matches(searching, {i: info})) {
               info['name'] = i;
               things.add(info);
             }
           }
         });
-        things.sort((a,b) => a['_next'].compareTo(b['_next']));
+        things.sort((a, b) => a['_next'].compareTo(b['_next']));
         things.forEach((thing) {
-              String t = thing['name'];
-              _items.add(t);
-              _keys[t] = new ValueKey(thing);
-              if (thing.containsKey('color')) {
-                _colors[t] = new Color(thing['color']);
-              }
-            });
+          String t = thing['name'];
+          _items.add(t);
+          _keys[t] = new ValueKey(thing);
+          if (thing.containsKey('color')) {
+            _colors[t] = new Color(thing['color']);
+          }
+        });
       });
     }
   }
@@ -155,123 +158,118 @@ class _ListPageState extends State<ListPage> {
   @override
   Widget build(BuildContext context) {
     ensureSignedIn().then((x) {
-          _setMyselfUp();
-        });
+      _setMyselfUp();
+    });
     List<Widget> xx = [];
     _items.forEach((i) {
-          Widget menu = new PopupMenuButton<String>(
-              child: const Icon(Icons.more_vert),
-              itemBuilder: (BuildContext context) => [
+      Widget menu = new PopupMenuButton<String>(
+          child: const Icon(Icons.more_vert),
+          itemBuilder: (BuildContext context) => [
                 new PopupMenuItem<String>(
-                    value: 'color',
-                    child: const Text('color')),
+                    value: 'color', child: const Text('color')),
                 new PopupMenuItem<String>(
-                    value: 'rename',
-                    child: const Text('rename')),
+                    value: 'rename', child: const Text('rename')),
               ],
-              onSelected: (selected) async {
-                if (selected == 'color') {
-                  Color color = await showDialog(
-                      context: context,
-                      child: pastelPicker(context));
-                  if (color != null) {
-                    print('color: ${color.value}');
-                    await _ref.child(i).child('color').set(color.value);
-                  }
-                } else if (selected == 'rename') {
-                  String newname = await textInputDialog(context,
-                      'Rename $listname thing?', i);
-                  if (newname != null && newname != i) {
-                    Map data = (await _ref.child(i).once()).value;
-                    _ref.child(newname).set(data);
-                    _ref.child(i).remove();
-                  }
-                }
-              });
+          onSelected: (selected) async {
+            if (selected == 'color') {
+              Color color = await showDialog(
+                  context: context, child: pastelPicker(context));
+              if (color != null) {
+                print('color: ${color.value}');
+                await _ref.child(i).child('color').set(color.value);
+              }
+            } else if (selected == 'rename') {
+              String newname =
+                  await textInputDialog(context, 'Rename $listname thing?', i);
+              if (newname != null && newname != i) {
+                Map data = (await _ref.child(i).once()).value;
+                _ref.child(newname).set(data);
+                _ref.child(i).remove();
+              }
+            }
+          });
 
-          xx.add(new Dismissible(
-                  child: new Card(
-                      color: _color(i),
-                      child: new Row(
-                          children: <Widget>[
-                            menu,
-                            new Expanded(child:
-                                new InkWell(
-                                    child: new Padding(
-                                        padding: const EdgeInsets.symmetric(vertical: 10.0),
-                                        child: new Text(i)),
-                                    onTap: () async {
-                                      print('selected $i');
-                                      Navigator.of(context).pushNamed('/$listname/$i');
-                                    })),
-                            new IconButton(
-                                icon: const Icon(Icons.delete),
-                                onPressed: () async {
-                                  final bool confirmed = await confirmDialog(context,
-                                      'Really delete $i?', 'DELETE');
-                                  print('confirmed is $confirmed');
-                                  if (confirmed) {
-                                    print('am deleting $i');
-                                    _ref.child(i).remove();
-                                  }
-                                }),
-                          ])),
-                  key: _keys[i],
-                  background: new Card(
-                      child: new ListTile(leading: doneIcon),
-                      color: doneColor),
-                  secondaryBackground: new Card(
-                      child: new ListTile(trailing: scheduleIcon),
-                      color: scheduleColor),
-                  onDismissed: (direction) async {
-                    setState(() {
-                      _items.remove(i);
-                    });
-                    Map data = (await _ref.once()).value;
-                    final int oldchosen = data[i]['_chosen'];
-                    final int oldnext = data[i]['_next'];
-                    final int now = new DateTime.now().millisecondsSinceEpoch;
-                    const int day = 24*60*60*1000;
-                    int nextone = oldnext + 1000*day;
-                    data.forEach((k,v) {
-                      if (v is Map && v.containsKey('_next') &&
-                          v['_next'] > oldnext && v['_next'] < nextone) {
-                        nextone = v['_next'];
-                      }
-                    });
-                    if (nextone == oldnext + 1000*day) {
-                      nextone = now;
+      xx.add(new Dismissible(
+        child: new Card(
+            color: _color(i),
+            child: new Row(children: <Widget>[
+              menu,
+              new Expanded(
+                  child: new InkWell(
+                      child: new Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10.0),
+                          child: new Text(i)),
+                      onTap: () async {
+                        print('selected $i');
+                        Navigator.of(context).pushNamed('/$listname/$i');
+                      })),
+              new IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: () async {
+                    final bool confirmed = await confirmDialog(
+                        context, 'Really delete $i?', 'DELETE');
+                    print('confirmed is $confirmed');
+                    if (confirmed) {
+                      print('am deleting $i');
+                      _ref.child(i).remove();
                     }
-                    if (direction == DismissDirection.startToEnd) {
-                      data[i]['_chosen'] = now;
-                      final int offset = data[i]['_chosen'] - oldchosen;
-                      data[i]['_next'] = data[i]['_chosen'] + _random.nextInt(offset);
-                    } else {
-                      data[i]['_ignored'] = now;
-                      final int offset = max(now - oldchosen, nextone - oldchosen);
-                      if (data[i]['_next'] < now) {
-                        data[i]['_next'] = now + offset + _random.nextInt(2*offset);
-                      } else {
-                        data[i]['_next'] = data[i]['_next'] + offset + _random.nextInt(2*offset);
-                      }
-                    }
-                    _ref.set(data);
-                  },
-                                 ));
-        });
-    AppBar appbar = new AppBar(
-        title: new Text('$listname'),
-        actions: <Widget>[
-          new IconButton(
-              icon: const Icon(Icons.search),
-              tooltip: 'Search',
-              onPressed: () {
+                  }),
+            ])),
+        key: _keys[i],
+        background:
+            new Card(child: new ListTile(leading: doneIcon), color: doneColor),
+        secondaryBackground: new Card(
+            child: new ListTile(trailing: scheduleIcon), color: scheduleColor),
+        onDismissed: (direction) async {
+          setState(() {
+            _items.remove(i);
+          });
+          Map data = (await _ref.once()).value;
+          final int oldchosen = data[i]['_chosen'];
+          final int oldnext = data[i]['_next'];
+          final int now = new DateTime.now().millisecondsSinceEpoch;
+          const int day = 24 * 60 * 60 * 1000;
+          int nextone = oldnext + 1000 * day;
+          data.forEach((k, v) {
+            if (v is Map &&
+                v.containsKey('_next') &&
+                v['_next'] > oldnext &&
+                v['_next'] < nextone) {
+              nextone = v['_next'];
+            }
+          });
+          if (nextone == oldnext + 1000 * day) {
+            nextone = now;
+          }
+          if (direction == DismissDirection.startToEnd) {
+            data[i]['_chosen'] = now;
+            final int offset = data[i]['_chosen'] - oldchosen;
+            data[i]['_next'] = data[i]['_chosen'] + _random.nextInt(offset);
+          } else {
+            data[i]['_ignored'] = now;
+            final int offset = max(now - oldchosen, nextone - oldchosen);
+            if (data[i]['_next'] < now) {
+              data[i]['_next'] = now + offset + _random.nextInt(2 * offset);
+            } else {
+              data[i]['_next'] =
+                  data[i]['_next'] + offset + _random.nextInt(2 * offset);
+            }
+          }
+          _ref.set(data);
+        },
+      ));
+    });
+    AppBar appbar = new AppBar(title: new Text('$listname'), actions: <Widget>[
+      new IconButton(
+          icon: const Icon(Icons.search),
+          tooltip: 'Search',
+          onPressed: () {
             print('should search here');
             setState(() {
               searching = '';
             });
           })
-        ]);
+    ]);
     if (searching != null) {
       appbar = new AppBar(
           leading: new BackButton(),
@@ -283,7 +281,7 @@ class _ListPageState extends State<ListPage> {
                   hintStyle: new TextStyle(fontSize: 16.0),
                   hideDivider: true),
               onChanged: (String val) async {
-            // print('search for $val compare $searching');
+                // print('search for $val compare $searching');
                 if (val != null && val != searching && val != '') {
                   searching = val;
                   final iteminfo = (await _ref.once()).value;
@@ -295,13 +293,13 @@ class _ListPageState extends State<ListPage> {
             new IconButton(
                 icon: new Icon(Icons.cancel),
                 onPressed: () {
-              setState(() {
-                searching = null;
-                _ref.once().then((xx) {
+                  setState(() {
+                    searching = null;
+                    _ref.once().then((xx) {
                       _orderItems(xx.value);
                     });
-              });
-            })
+                  });
+                })
           ]);
     }
     return new Scaffold(
@@ -315,28 +313,29 @@ class _ListPageState extends State<ListPage> {
             // key: new UniqueKey(),
             children: xx),
         floatingActionButton: new FloatingActionButton(
-            onPressed: () async {
-              String newitem = await textInputDialog(context, 'New $listname thing?');
-              if (newitem != null) {
-                Map data = {};
-                DataSnapshot old = await _ref.once();
-                if (old.value != null) {
-                  data = old.value;
-                }
-                final int now = new DateTime.now().millisecondsSinceEpoch;
-                const int day = 24*60*60*1000;
-                data[newitem] = {
-                  '_chosen': now,
-                  '_ignored': 0,
-                  '_next': now+_random.nextInt(2*day),
-                };
-                _ref.set(data);
-                print('got $newitem');
+          onPressed: () async {
+            String newitem =
+                await textInputDialog(context, 'New $listname thing?');
+            if (newitem != null) {
+              Map data = {};
+              DataSnapshot old = await _ref.once();
+              if (old.value != null) {
+                data = old.value;
               }
-            },
-            tooltip: 'Increment',
-            child: new Icon(Icons.add),
-                                                       ));
+              final int now = new DateTime.now().millisecondsSinceEpoch;
+              const int day = 24 * 60 * 60 * 1000;
+              data[newitem] = {
+                '_chosen': now,
+                '_ignored': 0,
+                '_next': now + _random.nextInt(2 * day),
+              };
+              _ref.set(data);
+              print('got $newitem');
+            }
+          },
+          tooltip: 'Increment',
+          child: new Icon(Icons.add),
+        ));
   }
 }
 
@@ -344,51 +343,53 @@ void main() {
   runApp(new MaterialApp(onGenerateRoute: listRoute));
 }
 
-Future<String> textInputDialog(BuildContext context, String title, [String value]) async {
+Future<String> textInputDialog(BuildContext context, String title,
+    [String value]) async {
   String foo;
-  return showDialog(context: context,
-      child: new AlertDialog(title: new Text(title),
-          content: new TextField(
-              controller: new TextEditingController(text: value),
-              autofocus: true,
-              onChanged: (String newval) {
-            foo = newval;
-          },
-              onSubmitted: (String newval) {
-            Navigator.pop(context, newval);
-          }),
-          actions: <Widget>[
-            new FlatButton(
-                child: new Text('CANCEL'),
-                onPressed: () {
-              Navigator.pop(context, null);
-            }
-                           ),
-            new FlatButton(
-                child: new Text('ADD'),
-                onPressed: () {
-              Navigator.pop(context, foo);
-            }
-                           ),
-          ]),
-                    );
+  return showDialog(
+    context: context,
+    child: new AlertDialog(
+        title: new Text(title),
+        content: new TextField(
+            controller: new TextEditingController(text: value),
+            autofocus: true,
+            onChanged: (String newval) {
+              foo = newval;
+            },
+            onSubmitted: (String newval) {
+              Navigator.pop(context, newval);
+            }),
+        actions: <Widget>[
+          new FlatButton(
+              child: new Text('CANCEL'),
+              onPressed: () {
+                Navigator.pop(context, null);
+              }),
+          new FlatButton(
+              child: new Text('ADD'),
+              onPressed: () {
+                Navigator.pop(context, foo);
+              }),
+        ]),
+  );
 }
 
-Future<bool> confirmDialog(BuildContext context, String title, String action) async {
-  return showDialog(context: context,
-      child: new AlertDialog(title: new Text(title),
-          actions: <Widget>[
-            new FlatButton(
-                child: new Text('CANCEL'),
-                onPressed: () {
+Future<bool> confirmDialog(
+    BuildContext context, String title, String action) async {
+  return showDialog(
+      context: context,
+      child: new AlertDialog(title: new Text(title), actions: <Widget>[
+        new FlatButton(
+            child: new Text('CANCEL'),
+            onPressed: () {
               Navigator.pop(context, false);
             }),
-            new FlatButton(
-                child: new Text(action),
-                onPressed: () {
+        new FlatButton(
+            child: new Text(action),
+            onPressed: () {
               Navigator.pop(context, true);
             }),
-          ]));
+      ]));
 }
 
 bool matchesString(String searching, String data) {
@@ -411,14 +412,16 @@ bool matches(String searching, data) {
 ColorPickerDialog pastelPicker(BuildContext context) {
   List<MaterialColor> primaries = Colors.primaries;
   List<Color> cs = new List.from(Colors.primaries);
-  for (int i=0; i<cs.length; i++) {
+  for (int i = 0; i < cs.length; i++) {
     cs[i] = primaries[i][200];
   }
   cs.add(const Color(0xFFdddddd));
   print('cs length ${cs.length}');
   ColorPickerGrid grid = new ColorPickerGrid(
       colors: cs,
-      onTap: (Color color) { Navigator.pop(context, color); },
+      onTap: (Color color) {
+        Navigator.pop(context, color);
+      },
       rounded: false);
   return new ColorPickerDialog(body: grid);
 }
