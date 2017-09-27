@@ -7,7 +7,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-
 const Duration _kFlingDuration = const Duration(milliseconds: 200);
 const double _kMinFlingVelocity = 700.0;
 const double _kMinFlingVelocityDelta = 400.0;
@@ -68,9 +67,10 @@ class Flingable extends StatefulWidget {
     this.secondaryBackground,
     this.onFlinged,
     this.flingThresholds: const <FlingDirection, double>{},
-  }) : assert(key != null),
-       assert(secondaryBackground != null ? background != null : true),
-       super(key: key);
+  })
+      : assert(key != null),
+        assert(secondaryBackground != null ? background != null : true),
+        super(key: key);
 
   /// The widget below this widget in the tree.
   final Widget child;
@@ -101,10 +101,9 @@ class Flingable extends StatefulWidget {
 }
 
 class _FlingableClipper extends CustomClipper<Rect> {
-  _FlingableClipper({
-    @required this.moveAnimation
-  }) : assert(moveAnimation != null),
-       super(reclip: moveAnimation);
+  _FlingableClipper({@required this.moveAnimation})
+      : assert(moveAnimation != null),
+        super(reclip: moveAnimation);
 
   final Animation<FractionalOffset> moveAnimation;
 
@@ -112,7 +111,8 @@ class _FlingableClipper extends CustomClipper<Rect> {
   Rect getClip(Size size) {
     final double offset = moveAnimation.value.dx * size.width;
     if (offset < 0)
-      return new Rect.fromLTRB(size.width + offset, 0.0, size.width, size.height);
+      return new Rect.fromLTRB(
+          size.width + offset, 0.0, size.width, size.height);
     return new Rect.fromLTRB(0.0, 0.0, offset, size.height);
   }
 
@@ -125,12 +125,14 @@ class _FlingableClipper extends CustomClipper<Rect> {
   }
 }
 
-class _FlingableState extends State<Flingable> with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+class _FlingableState extends State<Flingable>
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
   @override
   void initState() {
     super.initState();
-    _moveController = new AnimationController(duration: _kFlingDuration, vsync: this)
-      ..addStatusListener(_handleFlingStatusChanged);
+    _moveController =
+        new AnimationController(duration: _kFlingDuration, vsync: this)
+          ..addStatusListener(_handleFlingStatusChanged);
     _updateMoveAnimation();
   }
 
@@ -151,7 +153,9 @@ class _FlingableState extends State<Flingable> with TickerProviderStateMixin, Au
   }
 
   FlingDirection get _flingDirection {
-    return  _dragExtent > 0 ? FlingDirection.startToEnd : FlingDirection.endToStart;
+    return _dragExtent > 0
+        ? FlingDirection.startToEnd
+        : FlingDirection.endToStart;
   }
 
   double get _flingThreshold {
@@ -170,7 +174,8 @@ class _FlingableState extends State<Flingable> with TickerProviderStateMixin, Au
   void _handleDragStart(DragStartDetails details) {
     _dragUnderway = true;
     if (_moveController.isAnimating) {
-      _dragExtent = _moveController.value * _overallDragAxisExtent * _dragExtent.sign;
+      _dragExtent =
+          _moveController.value * _overallDragAxisExtent * _dragExtent.sign;
       _moveController.stop();
     } else {
       _dragExtent = 0.0;
@@ -182,8 +187,7 @@ class _FlingableState extends State<Flingable> with TickerProviderStateMixin, Au
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
-    if (!_isActive || _moveController.isAnimating)
-      return;
+    if (!_isActive || _moveController.isAnimating) return;
 
     final double delta = details.primaryDelta;
     final double oldDragExtent = _dragExtent;
@@ -200,32 +204,30 @@ class _FlingableState extends State<Flingable> with TickerProviderStateMixin, Au
 
   void _updateMoveAnimation() {
     _moveAnimation = new FractionalOffsetTween(
-      begin: FractionalOffset.topLeft,
-      end: new FractionalOffset(_dragExtent.sign, 0.0)
-    ).animate(_moveController);
+            begin: FractionalOffset.topLeft,
+            end: new FractionalOffset(_dragExtent.sign, 0.0))
+        .animate(_moveController);
   }
 
   bool _isFlingGesture(Velocity velocity) {
     // Cannot fling an item if it cannot be flinged by drag.
-    if (_flingThreshold >= 1.0)
-      return false;
+    if (_flingThreshold >= 1.0) return false;
     final double vx = velocity.pixelsPerSecond.dx;
     final double vy = velocity.pixelsPerSecond.dy;
-    if (vx.abs() - vy.abs() < _kMinFlingVelocityDelta)
-      return false;
+    if (vx.abs() - vy.abs() < _kMinFlingVelocityDelta) return false;
     return vx.abs() > _kMinFlingVelocity;
   }
 
   void _handleDragEnd(DragEndDetails details) {
-    if (!_isActive || _moveController.isAnimating)
-      return;
+    if (!_isActive || _moveController.isAnimating) return;
     _dragUnderway = false;
     if (_moveController.isCompleted) {
       _startResizeAnimation();
     } else if (_isFlingGesture(details.velocity)) {
       final double flingVelocity = details.velocity.pixelsPerSecond.dx;
       _dragExtent = flingVelocity.sign;
-      _moveController.fling(velocity: flingVelocity.abs() * _kFlingVelocityScale);
+      _moveController.fling(
+          velocity: flingVelocity.abs() * _kFlingVelocityScale);
     } else if (_moveController.value > _flingThreshold) {
       _moveController.forward();
     } else {
@@ -243,8 +245,7 @@ class _FlingableState extends State<Flingable> with TickerProviderStateMixin, Au
     assert(_moveController != null);
     assert(_moveController.isCompleted);
     assert(_sizePriorToCollapse == null);
-    if (widget.onFlinged != null)
-      widget.onFlinged(_flingDirection);
+    if (widget.onFlinged != null) widget.onFlinged(_flingDirection);
   }
 
   @override
@@ -253,27 +254,24 @@ class _FlingableState extends State<Flingable> with TickerProviderStateMixin, Au
     Widget background = widget.background;
     if (widget.secondaryBackground != null) {
       final FlingDirection direction = _flingDirection;
-      if (direction == FlingDirection.endToStart || direction == FlingDirection.up)
+      if (direction == FlingDirection.endToStart ||
+          direction == FlingDirection.up)
         background = widget.secondaryBackground;
     }
 
-    Widget content = new SlideTransition(
-      position: _moveAnimation,
-      child: widget.child
-    );
+    Widget content =
+        new SlideTransition(position: _moveAnimation, child: widget.child);
 
     if (background != null) {
       final List<Widget> children = <Widget>[];
 
       if (!_moveAnimation.isDismissed) {
         children.add(new Positioned.fill(
-          child: new ClipRect(
-            clipper: new _FlingableClipper(
-              moveAnimation: _moveAnimation,
-            ),
-            child: background
-          )
-        ));
+            child: new ClipRect(
+                clipper: new _FlingableClipper(
+                  moveAnimation: _moveAnimation,
+                ),
+                child: background)));
       }
 
       children.add(content);
@@ -282,11 +280,10 @@ class _FlingableState extends State<Flingable> with TickerProviderStateMixin, Au
 
     // We are not resizing but we may be being dragging in widget.direction.
     return new GestureDetector(
-      onHorizontalDragStart: _handleDragStart,
-      onHorizontalDragUpdate: _handleDragUpdate,
-      onHorizontalDragEnd: _handleDragEnd,
-      behavior: HitTestBehavior.opaque,
-      child: content
-    );
+        onHorizontalDragStart: _handleDragStart,
+        onHorizontalDragUpdate: _handleDragUpdate,
+        onHorizontalDragEnd: _handleDragEnd,
+        behavior: HitTestBehavior.opaque,
+        child: content);
   }
 }
