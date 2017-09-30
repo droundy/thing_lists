@@ -162,7 +162,7 @@ class _FlingableClipper extends CustomClipper<Rect> {
 }
 
 class _FlingableState extends State<Flingable>
-    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+    with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
@@ -170,6 +170,7 @@ class _FlingableState extends State<Flingable>
         new AnimationController(duration: _kFlingDuration, vsync: this)
           ..addStatusListener(_handleFlingStatusChanged);
     _updateMoveAnimation();
+    _growToSize();
   }
 
   AnimationController _moveController;
@@ -182,11 +183,6 @@ class _FlingableState extends State<Flingable>
   bool _dragUnderway = false;
   Size _sizePriorToCollapse;
   bool _amRestoring = false;
-
-  @override
-  bool get wantKeepAlive =>
-      _moveController?.isAnimating == true ||
-      _resizeController?.isAnimating == true;
 
   @override
   void dispose() {
@@ -327,7 +323,6 @@ class _FlingableState extends State<Flingable>
   void _handleFlingStatusChanged(AnimationStatus status) {
     if (status == AnimationStatus.completed && !_dragUnderway)
       _startResizeAnimation();
-    updateKeepAlive();
   }
 
   void _startResizeAnimation() {
@@ -340,8 +335,7 @@ class _FlingableState extends State<Flingable>
     } else {
       _resizeController =
           new AnimationController(duration: widget.resizeDuration, vsync: this)
-            ..addListener(_handleResizeProgressChanged)
-            ..addStatusListener((AnimationStatus status) => updateKeepAlive());
+            ..addListener(_handleResizeProgressChanged);
       _resizeController.forward();
       setState(() {
         _sizePriorToCollapse = context.size;
@@ -352,27 +346,32 @@ class _FlingableState extends State<Flingable>
     }
   }
 
+  void _growToSize() {
+    print('growing to size');
+    setState(() {
+      _amRestoring = true;
+      _resizeController = new AnimationController(
+          duration: widget.resizeDuration, vsync: this)
+        ..addListener(_handleResizeProgressChanged);
+      _resizeController.forward();
+      _resizeAnimation = new Tween<double>(begin: 0.0, end: 1.0).animate(
+          new CurvedAnimation(
+              parent: _resizeController, curve: _kResizeTimeCurve));
+    });
+  }
+
   void _handleResizeProgressChanged() {
     if (_resizeController.isCompleted) {
       _amRestoring = !_amRestoring;
       if (_amRestoring) {
         if (widget.onFlinged != null) widget.onFlinged(_flingDirection);
 
-        print('restoring the size');
+        _growToSize();
         // Here we restore the widget to its original size.
-        setState(() {
-          _resizeController = new AnimationController(
-              duration: widget.resizeDuration, vsync: this)
-            ..addListener(_handleResizeProgressChanged)
-            ..addStatusListener((AnimationStatus status) => updateKeepAlive());
-          _resizeController.forward();
-          _resizeAnimation = new Tween<double>(begin: 0.0, end: 1.0).animate(
-              new CurvedAnimation(
-                  parent: _resizeController, curve: _kResizeTimeCurve));
-        });
       } else {
-        print('done restoring the size');
+        print('done growing to size');
         setState(() {
+          _amRestoring = false;
           _resizeAnimation = null;
           _resizeController = null;
           _sizePriorToCollapse = null;
@@ -389,7 +388,6 @@ class _FlingableState extends State<Flingable>
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // See AutomaticKeepAliveClientMixin.
     Widget background = widget.background;
     if (widget.secondaryBackground != null) {
       final FlingDirection direction = _flingDirection;
@@ -399,24 +397,12 @@ class _FlingableState extends State<Flingable>
     }
 
     if (_resizeAnimation != null) {
-      // we've been dragged aside, and are now resizing.
+      // we are now resizing.
       if (_amRestoring) {
-        if (_resizeAnimation.status == AnimationStatus.completed) {
-          print('All done animating back in!');
-          setState(() {
-            _resizeAnimation = null;
-            _updateMoveAnimation();
-            _sizePriorToCollapse = null;
-          });
-        } else {
-          return new SizeTransition(
-              sizeFactor: _resizeAnimation,
-              axis: _directionIsXAxis ? Axis.vertical : Axis.horizontal,
-              child: new SizedBox(
-                  width: _sizePriorToCollapse.width,
-                  height: _sizePriorToCollapse.height,
-                  child: widget.child));
-        }
+        return new SizeTransition(
+            sizeFactor: _resizeAnimation,
+            axis: _directionIsXAxis ? Axis.vertical : Axis.horizontal,
+            child: widget.child);
       } else {
         return new SizeTransition(
             sizeFactor: _resizeAnimation,

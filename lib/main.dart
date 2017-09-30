@@ -94,6 +94,7 @@ class _ListPageState extends State<ListPage> {
   DatabaseReference _ref;
   List<String> _items = [];
   Map _colors = {};
+  Map _keys = {};
   String searching;
   final GlobalKey<AnimatedListState> listKey =
       new GlobalKey<AnimatedListState>();
@@ -189,6 +190,9 @@ class _ListPageState extends State<ListPage> {
             }
           });
 
+      if (!_keys.containsKey(i)) {
+        _keys[i] = new GlobalKey();
+      }
       xx.add(new Flingable(
         child: new Card(
             color: _color(i),
@@ -215,7 +219,7 @@ class _ListPageState extends State<ListPage> {
                     }
                   }),
             ])),
-        key: new ValueKey(i),
+        key: _keys[i],
         resizeDuration: const Duration(milliseconds: 1000),
         background:
             new Card(child: new ListTile(leading: doneIcon), color: doneColor),
@@ -245,7 +249,9 @@ class _ListPageState extends State<ListPage> {
             data[i]['_next'] = data[i]['_chosen'] + _random.nextInt(offset);
           } else {
             data[i]['_ignored'] = now;
-            final int offset = 1000 + max(now - oldchosen, nextone - oldchosen);
+            int offset = 1000 + max(now - oldchosen, nextone - oldchosen);
+            offset = min(offset, 2000000000);
+            print('offset is $offset... 2*offset is ${2*offset}');
             if (data[i]['_next'] < now) {
               data[i]['_next'] = now + offset + _random.nextInt(2 * offset);
             } else {
