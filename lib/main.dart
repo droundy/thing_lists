@@ -20,6 +20,8 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 
+import 'flingable.dart';
+
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -91,7 +93,6 @@ class _ListPageState extends State<ListPage> {
   final String listname;
   DatabaseReference _ref;
   List<String> _items = [];
-  Map _keys = {};
   Map _colors = {};
   String searching;
   final GlobalKey<AnimatedListState> listKey =
@@ -116,7 +117,6 @@ class _ListPageState extends State<ListPage> {
         things.forEach((thing) {
           String t = thing['name'];
           _items.add(t);
-          _keys[t] = new ValueKey(thing);
           if (thing.containsKey('color')) {
             _colors[t] = new Color(thing['color']);
           }
@@ -189,7 +189,7 @@ class _ListPageState extends State<ListPage> {
             }
           });
 
-      xx.add(new Dismissible(
+      xx.add(new Flingable(
         child: new Card(
             color: _color(i),
             child: new Row(children: <Widget>[
@@ -215,12 +215,12 @@ class _ListPageState extends State<ListPage> {
                     }
                   }),
             ])),
-        key: _keys[i],
+        key: new ValueKey(i),
         background:
             new Card(child: new ListTile(leading: doneIcon), color: doneColor),
         secondaryBackground: new Card(
             child: new ListTile(trailing: scheduleIcon), color: scheduleColor),
-        onDismissed: (direction) async {
+        onFlinged: (direction) async {
           setState(() {
             _items.remove(i);
           });
@@ -241,13 +241,13 @@ class _ListPageState extends State<ListPage> {
           if (nextone == oldnext + 1000 * day) {
             nextone = now;
           }
-          if (direction == DismissDirection.startToEnd) {
+          if (direction == FlingDirection.startToEnd) {
             data[i]['_chosen'] = now;
-            final int offset = data[i]['_chosen'] - oldchosen;
+            final int offset = 1000+data[i]['_chosen'] - oldchosen;
             data[i]['_next'] = data[i]['_chosen'] + _random.nextInt(offset);
           } else {
             data[i]['_ignored'] = now;
-            final int offset = max(now - oldchosen, nextone - oldchosen);
+            final int offset = 1000+max(now - oldchosen, nextone - oldchosen);
             if (data[i]['_next'] < now) {
               data[i]['_next'] = now + offset + _random.nextInt(2 * offset);
             } else {
