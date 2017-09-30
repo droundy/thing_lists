@@ -7,6 +7,7 @@ An app for lists of things.
 ## 0.0.4
 
 - Make menus work again.
+- Make beautiful animations when moving things.
 
 ## 0.0.3
 
