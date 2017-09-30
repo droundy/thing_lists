@@ -216,14 +216,12 @@ class _ListPageState extends State<ListPage> {
                   }),
             ])),
         key: new ValueKey(i),
+        resizeDuration: const Duration(milliseconds: 1000),
         background:
             new Card(child: new ListTile(leading: doneIcon), color: doneColor),
         secondaryBackground: new Card(
             child: new ListTile(trailing: scheduleIcon), color: scheduleColor),
         onFlinged: (direction) async {
-          setState(() {
-            _items.remove(i);
-          });
           Map data = (await _ref.once()).value;
           final int oldchosen = data[i]['_chosen'];
           final int oldnext = data[i]['_next'];
@@ -309,9 +307,7 @@ class _ListPageState extends State<ListPage> {
         //   return new Text('item');
         // },
         //     query: _ref),
-        body: new ListView(
-            // key: new UniqueKey(),
-            children: xx),
+        body: new ListView(key: new ValueKey(listname), children: xx),
         floatingActionButton: new FloatingActionButton(
           onPressed: () async {
             String newitem =

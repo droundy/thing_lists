@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 const Duration _kFlingDuration = const Duration(milliseconds: 200);
+const Curve _kResizeTimeCurve = const Interval(0.4, 1.0, curve: Curves.ease);
 const double _kMinFlingVelocity = 700.0;
 const double _kMinFlingVelocityDelta = 400.0;
 const double _kFlingVelocityScale = 1.0 / 300.0;
@@ -21,6 +22,9 @@ typedef void FlingDirectionCallback(FlingDirection direction);
 
 /// The direction in which a [Flingable] can be flinged.
 enum FlingDirection {
+  /// The [Flingable] can be flinged by dragging either up or down.
+  vertical,
+
   /// The [Flingable] can be flinged by dragging either left or right.
   horizontal,
 
@@ -42,20 +46,23 @@ enum FlingDirection {
 /// A widget that can be flinged by dragging in the indicated [direction].
 ///
 /// Dragging or flinging this widget in the [FlingDirection] causes the child
-/// to slide out of view.
+/// to slide out of view. Following the slide animation, if [resizeDuration] is
+/// non-null, the Flingable widget animates its height (or width, whichever is
+/// perpendicular to the fling direction) to zero over the [resizeDuration].
 ///
 /// Backgrounds can be used to implement the "leave-behind" idiom. If a background
 /// is specified it is stacked behind the Flingable's child and is exposed when
 /// the child moves.
 ///
-/// The widget calls the [onFlinged] callback immediately after the slide
-/// animation. If the Flingable is a list item, it must have a key that
-/// distinguishes it from the other items.
+/// The widget calls the [onFlinged] callback either after its size has
+/// collapsed to zero (if [resizeDuration] is non-null) or immediately after
+/// the slide animation (if [resizeDuration] is null). If the Flingable is a
+/// list item, it must have a key that distinguishes it from the other items.
 class Flingable extends StatefulWidget {
   /// Creates a widget that can be flinged.
   ///
   /// The [key] argument must not be null because [Flingable]s are commonly
-  /// used in lists and removed from the list when flinged. Without keys, the
+  /// used in lists and reordered in the list when flinged. Without keys, the
   /// default behavior is to sync widgets based on their index in the list,
   /// which means the item after the flinged item would be synced with the
   /// state of the flinged item. Using keys causes the widgets to sync
@@ -65,7 +72,10 @@ class Flingable extends StatefulWidget {
     @required this.child,
     this.background,
     this.secondaryBackground,
+    this.onResize,
     this.onFlinged,
+    this.direction: FlingDirection.horizontal,
+    this.resizeDuration: const Duration(milliseconds: 300),
     this.flingThresholds: const <FlingDirection, double>{},
   })
       : assert(key != null),
@@ -85,8 +95,20 @@ class Flingable extends StatefulWidget {
   /// has also been specified.
   final Widget secondaryBackground;
 
+  /// Called when the widget changes size (i.e., when contracting before being flinged).
+  final VoidCallback onResize;
+
   /// Called when the widget has been flinged, after finishing resizing.
   final FlingDirectionCallback onFlinged;
+
+  /// The direction in which the widget can be flinged.
+  final FlingDirection direction;
+
+  /// The amount of time the widget will spend contracting before [onFlinged] is called.
+  ///
+  /// If null, the widget will not contract and [onFlinged] will be called
+  /// immediately after the the widget is flinged.
+  final Duration resizeDuration;
 
   /// The offset threshold the item has to be dragged in order to be considered flinged.
   ///
@@ -101,19 +123,32 @@ class Flingable extends StatefulWidget {
 }
 
 class _FlingableClipper extends CustomClipper<Rect> {
-  _FlingableClipper({@required this.moveAnimation})
-      : assert(moveAnimation != null),
+  _FlingableClipper({@required this.axis, @required this.moveAnimation})
+      : assert(axis != null),
+        assert(moveAnimation != null),
         super(reclip: moveAnimation);
 
+  final Axis axis;
   final Animation<FractionalOffset> moveAnimation;
 
   @override
   Rect getClip(Size size) {
-    final double offset = moveAnimation.value.dx * size.width;
-    if (offset < 0)
-      return new Rect.fromLTRB(
-          size.width + offset, 0.0, size.width, size.height);
-    return new Rect.fromLTRB(0.0, 0.0, offset, size.height);
+    assert(axis != null);
+    switch (axis) {
+      case Axis.horizontal:
+        final double offset = moveAnimation.value.dx * size.width;
+        if (offset < 0)
+          return new Rect.fromLTRB(
+              size.width + offset, 0.0, size.width, size.height);
+        return new Rect.fromLTRB(0.0, 0.0, offset, size.height);
+      case Axis.vertical:
+        final double offset = moveAnimation.value.dy * size.height;
+        if (offset < 0)
+          return new Rect.fromLTRB(
+              0.0, size.height + offset, size.width, size.height);
+        return new Rect.fromLTRB(0.0, 0.0, size.width, offset);
+    }
+    return null;
   }
 
   @override
@@ -121,7 +156,8 @@ class _FlingableClipper extends CustomClipper<Rect> {
 
   @override
   bool shouldReclip(_FlingableClipper oldClipper) {
-    return oldClipper.moveAnimation.value != moveAnimation.value;
+    return oldClipper.axis != axis ||
+        oldClipper.moveAnimation.value != moveAnimation.value;
   }
 }
 
@@ -139,23 +175,38 @@ class _FlingableState extends State<Flingable>
   AnimationController _moveController;
   Animation<FractionalOffset> _moveAnimation;
 
+  AnimationController _resizeController;
+  Animation<double> _resizeAnimation;
+
   double _dragExtent = 0.0;
   bool _dragUnderway = false;
   Size _sizePriorToCollapse;
+  bool _amRestoring = false;
 
   @override
-  bool get wantKeepAlive => _moveController?.isAnimating == true;
+  bool get wantKeepAlive =>
+      _moveController?.isAnimating == true ||
+      _resizeController?.isAnimating == true;
 
   @override
   void dispose() {
     _moveController.dispose();
+    _resizeController?.dispose();
     super.dispose();
   }
 
+  bool get _directionIsXAxis {
+    return widget.direction == FlingDirection.horizontal ||
+        widget.direction == FlingDirection.endToStart ||
+        widget.direction == FlingDirection.startToEnd;
+  }
+
   FlingDirection get _flingDirection {
-    return _dragExtent > 0
-        ? FlingDirection.startToEnd
-        : FlingDirection.endToStart;
+    if (_directionIsXAxis)
+      return _dragExtent > 0
+          ? FlingDirection.startToEnd
+          : FlingDirection.endToStart;
+    return _dragExtent > 0 ? FlingDirection.down : FlingDirection.up;
   }
 
   double get _flingThreshold {
@@ -168,7 +219,7 @@ class _FlingableState extends State<Flingable>
 
   double get _overallDragAxisExtent {
     final Size size = context.size;
-    return size.width;
+    return _directionIsXAxis ? size.width : size.height;
   }
 
   void _handleDragStart(DragStartDetails details) {
@@ -191,7 +242,22 @@ class _FlingableState extends State<Flingable>
 
     final double delta = details.primaryDelta;
     final double oldDragExtent = _dragExtent;
-    _dragExtent += delta;
+    switch (widget.direction) {
+      case FlingDirection.horizontal:
+      case FlingDirection.vertical:
+        _dragExtent += delta;
+        break;
+
+      case FlingDirection.up:
+      case FlingDirection.endToStart:
+        if (_dragExtent + delta < 0) _dragExtent += delta;
+        break;
+
+      case FlingDirection.down:
+      case FlingDirection.startToEnd:
+        if (_dragExtent + delta > 0) _dragExtent += delta;
+        break;
+    }
     if (oldDragExtent.sign != _dragExtent.sign) {
       setState(() {
         _updateMoveAnimation();
@@ -205,7 +271,9 @@ class _FlingableState extends State<Flingable>
   void _updateMoveAnimation() {
     _moveAnimation = new FractionalOffsetTween(
             begin: FractionalOffset.topLeft,
-            end: new FractionalOffset(_dragExtent.sign, 0.0))
+            end: _directionIsXAxis
+                ? new FractionalOffset(_dragExtent.sign, 0.0)
+                : new FractionalOffset(0.0, _dragExtent.sign))
         .animate(_moveController);
   }
 
@@ -214,8 +282,27 @@ class _FlingableState extends State<Flingable>
     if (_flingThreshold >= 1.0) return false;
     final double vx = velocity.pixelsPerSecond.dx;
     final double vy = velocity.pixelsPerSecond.dy;
-    if (vx.abs() - vy.abs() < _kMinFlingVelocityDelta) return false;
-    return vx.abs() > _kMinFlingVelocity;
+    if (_directionIsXAxis) {
+      if (vx.abs() - vy.abs() < _kMinFlingVelocityDelta) return false;
+      switch (widget.direction) {
+        case FlingDirection.horizontal:
+          return vx.abs() > _kMinFlingVelocity;
+        case FlingDirection.endToStart:
+          return -vx > _kMinFlingVelocity;
+        default:
+          return vx > _kMinFlingVelocity;
+      }
+    } else {
+      if (vy.abs() - vx.abs() < _kMinFlingVelocityDelta) return false;
+      switch (widget.direction) {
+        case FlingDirection.vertical:
+          return vy.abs() > _kMinFlingVelocity;
+        case FlingDirection.up:
+          return -vy > _kMinFlingVelocity;
+        default:
+          return vy > _kMinFlingVelocity;
+      }
+    }
   }
 
   void _handleDragEnd(DragEndDetails details) {
@@ -224,7 +311,9 @@ class _FlingableState extends State<Flingable>
     if (_moveController.isCompleted) {
       _startResizeAnimation();
     } else if (_isFlingGesture(details.velocity)) {
-      final double flingVelocity = details.velocity.pixelsPerSecond.dx;
+      final double flingVelocity = _directionIsXAxis
+          ? details.velocity.pixelsPerSecond.dx
+          : details.velocity.pixelsPerSecond.dy;
       _dragExtent = flingVelocity.sign;
       _moveController.fling(
           velocity: flingVelocity.abs() * _kFlingVelocityScale);
@@ -244,8 +333,58 @@ class _FlingableState extends State<Flingable>
   void _startResizeAnimation() {
     assert(_moveController != null);
     assert(_moveController.isCompleted);
+    assert(_resizeController == null);
     assert(_sizePriorToCollapse == null);
-    if (widget.onFlinged != null) widget.onFlinged(_flingDirection);
+    if (widget.resizeDuration == null) {
+      if (widget.onFlinged != null) widget.onFlinged(_flingDirection);
+    } else {
+      _resizeController =
+          new AnimationController(duration: widget.resizeDuration, vsync: this)
+            ..addListener(_handleResizeProgressChanged)
+            ..addStatusListener((AnimationStatus status) => updateKeepAlive());
+      _resizeController.forward();
+      setState(() {
+        _sizePriorToCollapse = context.size;
+        _resizeAnimation = new Tween<double>(begin: 1.0, end: 0.0).animate(
+            new CurvedAnimation(
+                parent: _resizeController, curve: _kResizeTimeCurve));
+      });
+    }
+  }
+
+  void _handleResizeProgressChanged() {
+    if (_resizeController.isCompleted) {
+      _amRestoring = !_amRestoring;
+      if (_amRestoring) {
+        if (widget.onFlinged != null) widget.onFlinged(_flingDirection);
+
+        print('restoring the size');
+        // Here we restore the widget to its original size.
+        setState(() {
+          _resizeController = new AnimationController(
+              duration: widget.resizeDuration, vsync: this)
+            ..addListener(_handleResizeProgressChanged)
+            ..addStatusListener((AnimationStatus status) => updateKeepAlive());
+          _resizeController.forward();
+          _resizeAnimation = new Tween<double>(begin: 0.0, end: 1.0).animate(
+              new CurvedAnimation(
+                  parent: _resizeController, curve: _kResizeTimeCurve));
+        });
+      } else {
+        print('done restoring the size');
+        setState(() {
+          _resizeAnimation = null;
+          _resizeController = null;
+          _sizePriorToCollapse = null;
+          _moveController =
+              new AnimationController(duration: _kFlingDuration, vsync: this)
+                ..addStatusListener(_handleFlingStatusChanged);
+          _updateMoveAnimation();
+        });
+      }
+    } else {
+      if (widget.onResize != null) widget.onResize();
+    }
   }
 
   @override
@@ -259,6 +398,36 @@ class _FlingableState extends State<Flingable>
         background = widget.secondaryBackground;
     }
 
+    if (_resizeAnimation != null) {
+      // we've been dragged aside, and are now resizing.
+      if (_amRestoring) {
+        if (_resizeAnimation.status == AnimationStatus.completed) {
+          print('All done animating back in!');
+          setState(() {
+            _resizeAnimation = null;
+            _updateMoveAnimation();
+            _sizePriorToCollapse = null;
+          });
+        } else {
+          return new SizeTransition(
+              sizeFactor: _resizeAnimation,
+              axis: _directionIsXAxis ? Axis.vertical : Axis.horizontal,
+              child: new SizedBox(
+                  width: _sizePriorToCollapse.width,
+                  height: _sizePriorToCollapse.height,
+                  child: widget.child));
+        }
+      } else {
+        return new SizeTransition(
+            sizeFactor: _resizeAnimation,
+            axis: _directionIsXAxis ? Axis.vertical : Axis.horizontal,
+            child: new SizedBox(
+                width: _sizePriorToCollapse.width,
+                height: _sizePriorToCollapse.height,
+                child: background));
+      }
+    }
+
     Widget content =
         new SlideTransition(position: _moveAnimation, child: widget.child);
 
@@ -269,6 +438,7 @@ class _FlingableState extends State<Flingable>
         children.add(new Positioned.fill(
             child: new ClipRect(
                 clipper: new _FlingableClipper(
+                  axis: _directionIsXAxis ? Axis.horizontal : Axis.vertical,
                   moveAnimation: _moveAnimation,
                 ),
                 child: background)));
@@ -280,9 +450,12 @@ class _FlingableState extends State<Flingable>
 
     // We are not resizing but we may be being dragging in widget.direction.
     return new GestureDetector(
-        onHorizontalDragStart: _handleDragStart,
-        onHorizontalDragUpdate: _handleDragUpdate,
-        onHorizontalDragEnd: _handleDragEnd,
+        onHorizontalDragStart: _directionIsXAxis ? _handleDragStart : null,
+        onHorizontalDragUpdate: _directionIsXAxis ? _handleDragUpdate : null,
+        onHorizontalDragEnd: _directionIsXAxis ? _handleDragEnd : null,
+        onVerticalDragStart: _directionIsXAxis ? null : _handleDragStart,
+        onVerticalDragUpdate: _directionIsXAxis ? null : _handleDragUpdate,
+        onVerticalDragEnd: _directionIsXAxis ? null : _handleDragEnd,
         behavior: HitTestBehavior.opaque,
         child: content);
   }
