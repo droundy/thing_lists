@@ -170,7 +170,7 @@ class _FlingableState extends State<Flingable>
         new AnimationController(duration: _kFlingDuration, vsync: this)
           ..addStatusListener(_handleFlingStatusChanged);
     _updateMoveAnimation();
-    _growToSize();
+    //_growToSize();
   }
 
   AnimationController _moveController;
@@ -347,7 +347,6 @@ class _FlingableState extends State<Flingable>
   }
 
   void _growToSize() {
-    print('growing to size');
     setState(() {
       _amRestoring = true;
       _resizeController = new AnimationController(
@@ -369,7 +368,6 @@ class _FlingableState extends State<Flingable>
         _growToSize();
         // Here we restore the widget to its original size.
       } else {
-        print('done growing to size');
         setState(() {
           _amRestoring = false;
           _resizeAnimation = null;
