@@ -4,10 +4,13 @@ An app for lists of things.
 
 ## ChangeLog
 
+## 0.0.5
+
+- Make beautiful animations when moving things.
+
 ## 0.0.4
 
 - Make menus work again.
-- Make beautiful animations when moving things.
 
 ## 0.0.3
 
