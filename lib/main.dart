@@ -243,11 +243,11 @@ class _ListPageState extends State<ListPage> {
           }
           if (direction == FlingDirection.startToEnd) {
             data[i]['_chosen'] = now;
-            final int offset = 1000+data[i]['_chosen'] - oldchosen;
+            final int offset = 1000 + data[i]['_chosen'] - oldchosen;
             data[i]['_next'] = data[i]['_chosen'] + _random.nextInt(offset);
           } else {
             data[i]['_ignored'] = now;
-            final int offset = 1000+max(now - oldchosen, nextone - oldchosen);
+            final int offset = 1000 + max(now - oldchosen, nextone - oldchosen);
             if (data[i]['_next'] < now) {
               data[i]['_next'] = now + offset + _random.nextInt(2 * offset);
             } else {
