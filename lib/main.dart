@@ -164,7 +164,7 @@ class _ListPageState extends State<ListPage> {
     List<Widget> xx = [];
     _items.forEach((i) {
       Widget menu = new PopupMenuButton<String>(
-          child: const Icon(Icons.more_vert),
+          icon: const Icon(Icons.more_vert),
           itemBuilder: (BuildContext context) => [
                 new PopupMenuItem<String>(
                     value: 'color', child: const Text('color')),
