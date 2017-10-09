@@ -27,6 +27,8 @@ sushi.
 
 ## ChangeLog
 
+## 0.0.7
+
 ## 0.0.6
 
 - Make menu easier to select.
