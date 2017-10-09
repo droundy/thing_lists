@@ -161,8 +161,7 @@ class _FlingableClipper extends CustomClipper<Rect> {
   }
 }
 
-class _FlingableState extends State<Flingable>
-    with TickerProviderStateMixin {
+class _FlingableState extends State<Flingable> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
@@ -349,9 +348,9 @@ class _FlingableState extends State<Flingable>
   void _growToSize() {
     setState(() {
       _amRestoring = true;
-      _resizeController = new AnimationController(
-          duration: widget.resizeDuration, vsync: this)
-        ..addListener(_handleResizeProgressChanged);
+      _resizeController =
+          new AnimationController(duration: widget.resizeDuration, vsync: this)
+            ..addListener(_handleResizeProgressChanged);
       _resizeController.forward();
       _resizeAnimation = new Tween<double>(begin: 0.0, end: 1.0).animate(
           new CurvedAnimation(
