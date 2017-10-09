@@ -95,6 +95,7 @@ class _ListPageState extends State<ListPage> {
   List<String> _items = [];
   Map _colors = {};
   Map _keys = {};
+  Color myColor = const Color(0xFF555555);
   String searching;
   final GlobalKey<AnimatedListState> listKey =
       new GlobalKey<AnimatedListState>();
@@ -104,6 +105,9 @@ class _ListPageState extends State<ListPage> {
     List<Map> things = [];
     if (iteminfo != null) {
       setState(() {
+        if (iteminfo.containsKey('color')) {
+          myColor = darkColor(new Color(iteminfo['color']));
+        }
         iteminfo.forEach((i, info) {
           if (info is Map &&
               info.containsKey('_next') &&
@@ -278,17 +282,20 @@ class _ListPageState extends State<ListPage> {
         },
       ));
     });
-    AppBar appbar = new AppBar(title: new Text('$listname'), actions: <Widget>[
-      new IconButton(
-          icon: const Icon(Icons.search),
-          tooltip: 'Search',
-          onPressed: () {
-            print('should search here');
-            setState(() {
-              searching = '';
-            });
-          })
-    ]);
+    AppBar appbar = new AppBar(
+        title: new Text('$listname'),
+        backgroundColor: myColor,
+        actions: <Widget>[
+          new IconButton(
+              icon: const Icon(Icons.search),
+              tooltip: 'Search',
+              onPressed: () {
+                print('should search here');
+                setState(() {
+                  searching = '';
+                });
+              })
+        ]);
     if (searching != null) {
       appbar = new AppBar(
           leading: new BackButton(),
@@ -323,13 +330,9 @@ class _ListPageState extends State<ListPage> {
     }
     return new Scaffold(
         appBar: appbar,
-        // body: new FirebaseAnimatedList(
-        //     itemBuilder: (BuildContext context, DataSnapshot snapshot, Animation<double> animation) {
-        //   return new Text('item');
-        // },
-        //     query: _ref),
         body: new ListView(key: new ValueKey(listname), children: xx),
         floatingActionButton: new FloatingActionButton(
+          backgroundColor: myColor,
           onPressed: () async {
             String newitem =
                 await textInputDialog(context, 'New $listname thing?');
@@ -424,6 +427,16 @@ bool matches(String searching, data) {
     return true;
   }
   return data.values.any((v) => matches(searching, v));
+}
+
+Color darkColor(Color c) {
+  Color dark = const Color(0xFF666666);
+  Colors.primaries.forEach((p) {
+        if (p[200] == c) {
+          dark = p[700];
+        }
+      });
+  return dark;
 }
 
 ColorPickerDialog pastelPicker(BuildContext context) {

@@ -29,6 +29,9 @@ sushi.
 
 ## 0.0.7
 
+- Use item color to set theme color, so each list can have a different
+  theme color.
+
 ## 0.0.6
 
 - Make menu easier to select.
