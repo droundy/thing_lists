@@ -246,7 +246,22 @@ class _ListPageState extends State<ListPage> {
           if (direction == FlingDirection.startToEnd) {
             data[i]['_chosen'] = now;
             final int offset = 1000 + data[i]['_chosen'] - oldchosen;
-            data[i]['_next'] = data[i]['_chosen'] + _random.nextInt(offset);
+            final int newnext =
+                data[i]['_chosen'] + _random.nextInt(2 * offset);
+            data[i]['_next'] = newnext;
+            if (nextone > data[i]['_next'] && nextone != now) {
+              // We haven't moved back in sequence! Presumably because all our
+              // options are too far into the future... so let us move them
+              // forward.
+              data.forEach((k, v) {
+                if (v is Map &&
+                    v.containsKey('_next') &&
+                    v['_next'] > newnext) {
+                  // move it back closer to now (on average by half).
+                  v['_next'] = now + _random.nextInt(v['_next'] - now);
+                }
+              });
+            }
           } else {
             data[i]['_ignored'] = now;
             int offset = 1000 + max(now - oldchosen, nextone - oldchosen);
