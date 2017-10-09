@@ -27,6 +27,12 @@ sushi.
 
 ## ChangeLog
 
+## 0.0.6
+
+- Make menu easier to select.
+- Better behavior when the thing you selected is expected to be
+  re-selected very soon.
+
 ## 0.0.5
 
 - Make beautiful animations when moving things.
