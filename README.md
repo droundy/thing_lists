@@ -1,14 +1,13 @@
 # Thing Lists
 
-An app for lists of things.  This app is designed for "things" that
-you want to choose regularly, and for which you would like to not keep
-choosing the same ones in order to have some variety.  Examples are
-books to reread, recipes to make for dinner, songs to sing to a baby,
-or books of the Bible to read next.  As humans, we are not very good
-at thinking of a random thing, because what we remember is what we
-recently read/cooked/sang.  This can lead to getting into a rut.
+Thing Lists keeps track of lists of "things", such as recipes, books,
+or music.  In particular, its specialty is on things that you want to
+choose one of from time to time, and you don't want to keep picking
+the same one.  You can "select" a given item (swipe right) to indicate
+that you have chosen that one, or you can "postpone" it (swipe left) to
+say you'd rather see it later.
 
-Thing Lists, allows you to create a hierarchy of lists.  Each list can
+Thing Lists allows you to create a hierarchy of lists.  Each list can
 have a bunch of elements, and you can color those elements as you
 like, or rename or delete them.  So far, Thing Lists is like any of
 the other hundred thousand list apps.
