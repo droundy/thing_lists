@@ -30,6 +30,8 @@ import 'package:flutter_color_picker/flutter_color_picker.dart';
 
 // import 'package:share/share.dart';
 
+const int day = 24 * 60 * 60 * 1000;
+
 final GoogleSignIn _googleSignIn = new GoogleSignIn();
 DatabaseReference _root;
 final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -249,10 +251,7 @@ class _ListPageState extends State<ListPage> {
           }
           if (direction == FlingDirection.startToEnd) {
             data[i]['_chosen'] = now;
-            final int offset = 1000 + data[i]['_chosen'] - oldchosen;
-            final int newnext =
-                data[i]['_chosen'] + _random.nextInt(2 * offset);
-            data[i]['_next'] = newnext;
+            data[i]['_next'] = 2 * now - oldchosen;
             if (nextone > data[i]['_next'] && nextone != now) {
               // We haven't moved back in sequence! Presumably because all our
               // options are too far into the future... so let us move them
@@ -260,22 +259,29 @@ class _ListPageState extends State<ListPage> {
               data.forEach((k, v) {
                 if (v is Map &&
                     v.containsKey('_next') &&
-                    v['_next'] > newnext) {
-                  // move it back closer to now (on average by half).
-                  v['_next'] = now + _random.nextInt(v['_next'] - now);
+                    v['_next'] > data[i]['_next']) {
+                  // move it back closer to now by half.
+                  final int this_next = v['_next'];
+                  v['_next'] = now + (v['_next'] - now) ~/ 2;
+                  print(
+                      'changed $k from ${this_next-now} to ${v["_next"]-now}');
                 }
               });
             }
           } else {
             data[i]['_ignored'] = now;
-            int offset = 1000 + max(now - oldchosen, nextone - oldchosen);
-            offset = min(offset, 2000000000);
+            int offset = 1000 + now - oldchosen;
+            if (offset < 1000 + nextone - oldchosen) {
+              offset = 1000 + nextone - oldchosen;
+            }
+            if (offset < day ~/ 24) {
+              offset = day ~/ 24;
+            }
             print('offset is $offset... 2*offset is ${2*offset}');
             if (data[i]['_next'] < now) {
-              data[i]['_next'] = now + offset + _random.nextInt(2 * offset);
+              data[i]['_next'] = now + offset + myrand(2 * offset);
             } else {
-              data[i]['_next'] =
-                  data[i]['_next'] + offset + _random.nextInt(2 * offset);
+              data[i]['_next'] = data[i]['_next'] + offset + myrand(2 * offset);
             }
           }
           _ref.set(data);
@@ -343,11 +349,10 @@ class _ListPageState extends State<ListPage> {
                 data = old.value;
               }
               final int now = new DateTime.now().millisecondsSinceEpoch;
-              const int day = 24 * 60 * 60 * 1000;
               data[newitem] = {
                 '_chosen': now,
                 '_ignored': 0,
-                '_next': now + _random.nextInt(2 * day),
+                '_next': now + myrand(2 * day),
               };
               _ref.set(data);
               print('got $newitem');
@@ -432,10 +437,10 @@ bool matches(String searching, data) {
 Color darkColor(Color c) {
   Color dark = const Color(0xFF666666);
   Colors.primaries.forEach((p) {
-        if (p[200] == c) {
-          dark = p[700];
-        }
-      });
+    if (p[200] == c) {
+      dark = p[700];
+    }
+  });
   return dark;
 }
 
@@ -454,4 +459,18 @@ ColorPickerDialog pastelPicker(BuildContext context) {
       },
       rounded: false);
   return new ColorPickerDialog(body: grid);
+}
+
+int mymax(int a, int b) {
+  if (a > b) return a;
+  return b;
+}
+
+int myrand(int mx) {
+  if (mx < 0) return 0;
+  if (mx > 4294967296) {
+    print('mx is too big: $mx');
+    return (_random.nextDouble() * mx).toInt();
+  }
+  return _random.nextInt(mx);
 }

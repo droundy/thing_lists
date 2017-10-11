@@ -31,6 +31,7 @@ sushi.
 
 - Use item color to set theme color, so each list can have a different
   theme color.
+- Make scheduling of things after an item is selected nonrandom.
 
 ## 0.0.6
 
