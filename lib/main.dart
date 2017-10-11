@@ -196,6 +196,29 @@ class _ListPageState extends State<ListPage> {
             }
           });
 
+      Widget followMenu = new PopupMenuButton<String>(
+          icon: const Icon(Icons.low_priority),
+          itemBuilder: (BuildContext context) {
+            List<Widget> followItems = [
+              const PopupMenuItem<String>(
+                  value: '___remove___', child: const Text('independent'))
+            ];
+            _items.forEach((ii) {
+              if (ii != i) {
+                followItems.add(new PopupMenuItem<String>(
+                    value: ii, child: new Text('follows $ii')));
+              }
+            });
+            return followItems;
+          },
+          onSelected: (selected) {
+            if (selected == '___remove___') {
+              _ref.child(i).child('_follows').remove();
+            } else {
+              _ref.child(i).child('_follows').set(selected);
+            }
+          });
+
       if (!_keys.containsKey(i)) {
         _keys[i] = new GlobalKey();
       }
@@ -204,6 +227,7 @@ class _ListPageState extends State<ListPage> {
             color: _color(i),
             child: new Row(children: <Widget>[
               menu,
+              followMenu,
               new Expanded(
                   child: new InkWell(
                       child: new Padding(
@@ -261,10 +285,7 @@ class _ListPageState extends State<ListPage> {
                     v.containsKey('_next') &&
                     v['_next'] > data[i]['_next']) {
                   // move it back closer to now by half.
-                  final int this_next = v['_next'];
                   v['_next'] = now + (v['_next'] - now) ~/ 2;
-                  print(
-                      'changed $k from ${this_next-now} to ${v["_next"]-now}');
                 }
               });
             }
@@ -284,6 +305,21 @@ class _ListPageState extends State<ListPage> {
               data[i]['_next'] = data[i]['_next'] + offset + myrand(2 * offset);
             }
           }
+          // now we fix up "follows" relationship
+          data.forEach((k, v) {
+            if (v is Map &&
+                v.containsKey('_next') &&
+                v.containsKey('_follows')) {
+              Map earlier = data[v['_follows']];
+              if (earlier['_chosen'] < v['_chosen'] &&
+                  earlier['_next'] > v['_next']) {
+                // They are out of order, so swap!
+                int oldvnext = v['_next'];
+                v['_next'] = earlier['_next'];
+                earlier['_next'] = oldvnext;
+              }
+            }
+          });
           _ref.set(data);
         },
       ));

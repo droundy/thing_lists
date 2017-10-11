@@ -32,6 +32,8 @@ sushi.
 - Use item color to set theme color, so each list can have a different
   theme color.
 - Make scheduling of things after an item is selected nonrandom.
+- Began work at enabling input of dependencies between things, as in
+  books within a sequence, which should be read in that order.
 
 ## 0.0.6
 
