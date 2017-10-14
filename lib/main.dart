@@ -95,6 +95,7 @@ class _ListPageState extends State<ListPage> {
   final String listname;
   DatabaseReference _ref;
   List<String> _items = [];
+  Map _follows = {};
   Map _colors = {};
   Map _keys = {};
   Color myColor = const Color(0xFF555555);
@@ -121,11 +122,15 @@ class _ListPageState extends State<ListPage> {
           }
         });
         things.sort((a, b) => a['_next'].compareTo(b['_next']));
+        _follows = {};
         things.forEach((thing) {
           String t = thing['name'];
           _items.add(t);
           if (thing.containsKey('color')) {
             _colors[t] = new Color(thing['color']);
+          }
+          if (thing.containsKey('_follows')) {
+            _follows[t] = thing['_follows'];
           }
         });
       });
@@ -169,6 +174,12 @@ class _ListPageState extends State<ListPage> {
     });
     List<Widget> xx = [];
     _items.forEach((i) {
+      PopupMenuItem<String> followItem = const PopupMenuItem<String>(
+          value: 'follows', child: const Text('follows...'));
+      if (_follows.containsKey(i)) {
+        followItem = new PopupMenuItem<String>(
+            value: 'follows', child: new Text('follows ${_follows[i]}'));
+      }
       Widget menu = new PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert),
           itemBuilder: (BuildContext context) => [
@@ -176,6 +187,7 @@ class _ListPageState extends State<ListPage> {
                     value: 'color', child: const Text('color')),
                 new PopupMenuItem<String>(
                     value: 'rename', child: const Text('rename')),
+                followItem,
               ],
           onSelected: (selected) async {
             if (selected == 'color') {
@@ -193,29 +205,22 @@ class _ListPageState extends State<ListPage> {
                 _ref.child(newname).set(data);
                 _ref.child(i).remove();
               }
-            }
-          });
-
-      Widget followMenu = new PopupMenuButton<String>(
-          icon: const Icon(Icons.low_priority),
-          itemBuilder: (BuildContext context) {
-            List<Widget> followItems = [
-              const PopupMenuItem<String>(
-                  value: '___remove___', child: const Text('independent'))
-            ];
-            _items.forEach((ii) {
-              if (ii != i) {
-                followItems.add(new PopupMenuItem<String>(
-                    value: ii, child: new Text('follows $ii')));
+            } else if (selected == 'follows') {
+              List<String> options = [];
+              _items.forEach((xx) {
+                if (xx != i) {
+                  options.add(xx);
+                }
+              });
+              String newfollows =
+                  await stringSelectDialog(context, '$i follows:', options);
+              if (newfollows != null) {
+                if (newfollows == '__none__') {
+                  await _ref.child(i).child('_follows').remove();
+                } else {
+                  await _ref.child(i).child('_follows').set(newfollows);
+                }
               }
-            });
-            return followItems;
-          },
-          onSelected: (selected) {
-            if (selected == '___remove___') {
-              _ref.child(i).child('_follows').remove();
-            } else {
-              _ref.child(i).child('_follows').set(selected);
             }
           });
 
@@ -227,7 +232,6 @@ class _ListPageState extends State<ListPage> {
             color: _color(i),
             child: new Row(children: <Widget>[
               menu,
-              followMenu,
               new Expanded(
                   child: new InkWell(
                       child: new Padding(
@@ -305,21 +309,25 @@ class _ListPageState extends State<ListPage> {
               data[i]['_next'] = data[i]['_next'] + offset + myrand(2 * offset);
             }
           }
-          // now we fix up "follows" relationship
-          data.forEach((k, v) {
-            if (v is Map &&
-                v.containsKey('_next') &&
-                v.containsKey('_follows')) {
-              Map earlier = data[v['_follows']];
-              if (earlier['_chosen'] < v['_chosen'] &&
-                  earlier['_next'] > v['_next']) {
-                // They are out of order, so swap!
-                int oldvnext = v['_next'];
-                v['_next'] = earlier['_next'];
-                earlier['_next'] = oldvnext;
+          // Now we fix up "follows" relationship.  This is pretty hokey, we
+          // just do the swaps seven times, which is probaly enough to percolate
+          // the ordering down.
+          for (int ii = 0; ii < 7; ii++) {
+            data.forEach((k, v) {
+              if (v is Map &&
+                  v.containsKey('_next') &&
+                  v.containsKey('_follows')) {
+                Map earlier = data[v['_follows']];
+                if (earlier['_chosen'] < v['_chosen'] &&
+                    earlier['_next'] > v['_next']) {
+                  // They are out of order, so swap!
+                  int oldvnext = v['_next'];
+                  v['_next'] = earlier['_next'];
+                  earlier['_next'] = oldvnext;
+                }
               }
-            }
-          });
+            });
+          }
           _ref.set(data);
         },
       ));
@@ -509,4 +517,73 @@ int myrand(int mx) {
     return (_random.nextDouble() * mx).toInt();
   }
   return _random.nextInt(mx);
+}
+
+class StringSelectDialog extends StatefulWidget {
+  final String title;
+  final List<String> options;
+  StringSelectDialog({Key key, this.title, this.options}) : super(key: key);
+
+  @override
+  _StringSelectState createState() =>
+      new _StringSelectState(title: title, options: options);
+}
+
+class _StringSelectState extends State<StringSelectDialog> {
+  final String title;
+  final List<String> options;
+  String _filter = '';
+  _StringSelectState({this.title, this.options});
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    List<Widget> buttons = [
+      new TextField(
+          autofocus: true,
+          onChanged: (String newval) {
+            setState(() {
+              _filter = newval;
+            });
+          })
+    ];
+    if (options.length < 6) {
+      buttons = [];
+    }
+    options.forEach((o) {
+      if (buttons.length < 6 && matchesString(_filter, o)) {
+        buttons.add(new FlatButton(
+            child: new Text(o),
+            onPressed: () {
+              Navigator.pop(context, o);
+            }));
+      }
+    });
+    return new AlertDialog(
+        title: new Text(title),
+        content: new Column(children: buttons, mainAxisSize: MainAxisSize.min),
+        actions: <Widget>[
+          new FlatButton(
+              child: const Text('CANCEL'),
+              onPressed: () {
+                Navigator.pop(context, null);
+              }),
+          new FlatButton(
+              child: const Text('NONE'),
+              onPressed: () {
+                Navigator.pop(context, '__none__');
+              }),
+        ]);
+  }
+}
+
+Future<String> stringSelectDialog(
+    BuildContext context, String title, List<String> options) async {
+  return showDialog(
+      context: context,
+      child: new StringSelectDialog(title: title, options: options));
 }
