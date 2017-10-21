@@ -94,6 +94,7 @@ const scheduleColor = const Color(0xFFef6c00);
 class ThingInfo {
   final String name;
   final Map data;
+  List<ThingInfo> _children;
 
   ThingInfo({this.name, this.data}) {
     if (!data.containsKey('_next')) {
@@ -129,13 +130,14 @@ class ThingInfo {
   }
 
   List<ThingInfo> get children {
-    List<ThingInfo> ch = [];
+    if (_children != null) return _children;
+    _children = [];
     data.forEach((i, info) {
       if (info is Map && info.containsKey('_next')) {
-        ch.add(new ThingInfo(name: i, data: info));
+        _children.add(new ThingInfo(name: i, data: info));
       }
     });
-    return ch;
+    return _children;
   }
 
   ThingInfo child(String name) {
@@ -152,10 +154,29 @@ class ThingInfo {
     return (chosen - firstChosen) ~/ count;
   }
 
-  void choose() {
+  int get meanChildInterval {
+    int totalcount = 0;
+    int totaltime = 0;
+    children.forEach((ch) {
+          if (ch.count > 0) {
+            totaltime += ch.count;
+            totaltime += (ch.chosen - ch.firstChosen);
+          }
+        });
+    if (totalcount == 0) {
+      return 1 * day;
+    }
+    return totaltime ~/ totalcount;
+  }
+
+  void choose(final int meanIntervalList) {
     final int oldchosen = chosen;
     data['_chosen'] = now;
-    data['_next'] = 2 * now - oldchosen;
+    if (count > 1) {
+      data['_next'] = pow((2 * now - oldchosen)*meanInterval*meanIntervalList, 1/3).round();
+    } else {
+      data['_next'] = meanIntervalList;
+    }
     data['_chosen_count'] += 1;
     if (firstChosen == null) {
       data['_first_chosen'] = chosen;
@@ -188,6 +209,7 @@ class ThingInfo {
 class _ListPageState extends State<ListPage> {
   final String listname;
   DatabaseReference _ref;
+  ThingInfo _info;
   List<String> _items = [];
   Map _follows = {};
   Map _colors = {};
@@ -202,11 +224,11 @@ class _ListPageState extends State<ListPage> {
     List<ThingInfo> things = [];
     if (iteminfo != null) {
       setState(() {
-        ThingInfo mainthing = new ThingInfo(name: listname, data: iteminfo);
+        _info = new ThingInfo(name: listname, data: iteminfo);
         if (iteminfo.containsKey('color')) {
-          myColor = darkColor(mainthing.color);
+          myColor = darkColor(_info.color);
         }
-        mainthing.children.forEach((ch) {
+        _info.children.forEach((ch) {
           if (searching == null || matches(searching, {ch.name: ch.data})) {
             things.add(ch);
           }
@@ -350,13 +372,11 @@ class _ListPageState extends State<ListPage> {
         secondaryBackground: new Card(
             child: new ListTile(trailing: scheduleIcon), color: scheduleColor),
         onFlinged: (direction) async {
-          Map data = (await _ref.once()).value;
-          ThingInfo mainthing = new ThingInfo(name: listname, data: data);
-          ThingInfo info = new ThingInfo(name: i, data: data[i]);
+          ThingInfo info = _info.child(i);
           final int oldnext = info.next;
           final int now = new DateTime.now().millisecondsSinceEpoch;
           int nextone = oldnext + 1000 * day;
-          mainthing.children.forEach((ch) {
+          _info.children.forEach((ch) {
             if (ch.next > oldnext && ch.next < nextone) {
               nextone = ch.next;
             }
@@ -364,12 +384,13 @@ class _ListPageState extends State<ListPage> {
           if (nextone == oldnext + 1000 * day) {
             nextone = now;
           }
+          int meanInterval = _info.meanChildInterval;
           if (direction == FlingDirection.startToEnd) {
-            info.choose();
+            info.choose(meanInterval);
             if (nextone > info.next && nextone != now) {
               // We haven't moved back in sequence! Presumably because all our
               // options are too far into the future... so let them be sooner.
-              mainthing.children.forEach((ch) {
+              _info.children.forEach((ch) {
                 if (ch.next > info.next) {
                   ch.sooner();
                 }
@@ -381,11 +402,10 @@ class _ListPageState extends State<ListPage> {
           // Now we fix up "follows" relationship.  This is pretty hokey, we
           // just do the swaps seven times, which is probaly enough to percolate
           // the ordering down.
-          List<ThingInfo> children = mainthing.children;
           for (int ii = 0; ii < 7; ii++) {
-            children.forEach((ch) {
+            _info.children.forEach((ch) {
               if (ch.follows != null) {
-                ThingInfo earlier = mainthing.child(ch.follows);
+                ThingInfo earlier = _info.child(ch.follows);
                 if (earlier != null &&
                     earlier.chosen < ch.chosen &&
                     earlier.next > ch.next) {
@@ -396,7 +416,7 @@ class _ListPageState extends State<ListPage> {
               }
             });
           }
-          _ref.set(data);
+          _ref.set(_info.data);
         },
       ));
     });
