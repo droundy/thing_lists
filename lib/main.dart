@@ -91,6 +91,88 @@ const scheduleIcon = const Icon(Icons.schedule, color: const Color(0xFFFFFFFF));
 const doneColor = const Color(0xFF0f9d58);
 const scheduleColor = const Color(0xFFef6c00);
 
+class ThingInfo {
+  final String name;
+  final Map data;
+
+  ThingInfo({this.name, this.data}) {
+    if (!data.containsKey('_next')) {
+      data['_next'] = now;
+    }
+    if (!data.containsKey('_chosen_count')) {
+      data['_chosen_count'] = 0;
+    }
+    if (!data.containsKey('_added')) {
+      if (firstChosen != null) {
+        data['_added'] = firstChosen;
+      } else if (chosen != null) {
+        data['_added'] = chosen;
+      } else {
+        data['_added'] = next;
+      }
+    }
+  }
+
+  int get now => new DateTime.now().millisecondsSinceEpoch;
+
+  int get added => data['_added'];
+  int get chosen => data['_chosen'];
+  int get firstChosen => data['_first_chosen'];
+  int get next => data['_next'];
+  int get count => data['_chosen_count'];
+  String get follows => data['_follows'];
+  Color get color {
+    if (data.containsKey('color')) {
+      return new Color(data['color']);
+    }
+    return null;
+  }
+
+  List<ThingInfo> get children {
+    List<ThingInfo> ch = [];
+    data.forEach((i, info) {
+      if (info is Map && info.containsKey('_next')) {
+        ch.add(new ThingInfo(name: i, data: info));
+      }
+    });
+    return ch;
+  }
+
+  int get meanInterval {
+    if (count == 0) {
+      return 1 * day;
+    }
+    return (chosen - firstChosen) ~/ count;
+  }
+
+  void choose() {
+    final int oldchosen = chosen;
+    data['_chosen'] = now;
+    data['_next'] = 2 * now - oldchosen;
+    data['_chosen_count'] += 1;
+    if (firstChosen == null) {
+      data['_first_chosen'] = chosen;
+    }
+  }
+
+  void ignore(int nextone) {
+    final int thisnow = now;
+    int offset = 1000 + thisnow - chosen;
+    if (offset < 1000 + nextone - chosen) {
+      offset = 1000 + nextone - chosen;
+    }
+    if (offset < day ~/ 24) {
+      offset = day ~/ 24;
+    }
+    print('offset is $offset... 2*offset is ${2*offset}');
+    if (next < thisnow) {
+      data['_next'] = thisnow + offset + myrand(2 * offset);
+    } else {
+      data['_next'] = next + offset + myrand(2 * offset);
+    }
+  }
+}
+
 class _ListPageState extends State<ListPage> {
   final String listname;
   DatabaseReference _ref;
@@ -105,32 +187,28 @@ class _ListPageState extends State<ListPage> {
 
   _orderItems(Map iteminfo) {
     _items = [];
-    List<Map> things = [];
+    List<ThingInfo> things = [];
     if (iteminfo != null) {
       setState(() {
+        ThingInfo mainthing = new ThingInfo(name: listname, data: iteminfo);
         if (iteminfo.containsKey('color')) {
-          myColor = darkColor(new Color(iteminfo['color']));
+          myColor = darkColor(mainthing.color);
         }
-        iteminfo.forEach((i, info) {
-          if (info is Map &&
-              info.containsKey('_next') &&
-              info.containsKey('_chosen')) {
-            if (searching == null || matches(searching, {i: info})) {
-              info['name'] = i;
-              things.add(info);
-            }
-          }
-        });
-        things.sort((a, b) => a['_next'].compareTo(b['_next']));
+        mainthing.children.forEach((ch) {
+              if (searching == null || matches(searching, {ch.name: ch.data})) {
+                things.add(ch);
+              }
+            });
+        things.sort((a, b) => a.next.compareTo(b.next));
         _follows = {};
         things.forEach((thing) {
-          String t = thing['name'];
+          String t = thing.name;
           _items.add(t);
-          if (thing.containsKey('color')) {
-            _colors[t] = new Color(thing['color']);
+          if (thing.color != null) {
+            _colors[t] = thing.color;
           }
-          if (thing.containsKey('_follows')) {
-            _follows[t] = thing['_follows'];
+          if (thing.follows != null) {
+            _follows[t] = thing.follows;
           }
         });
       });
@@ -261,10 +339,9 @@ class _ListPageState extends State<ListPage> {
             child: new ListTile(trailing: scheduleIcon), color: scheduleColor),
         onFlinged: (direction) async {
           Map data = (await _ref.once()).value;
-          final int oldchosen = data[i]['_chosen'];
-          final int oldnext = data[i]['_next'];
+          ThingInfo info = new ThingInfo(name: i, data: data[i]);
+          final int oldnext = info.next;
           final int now = new DateTime.now().millisecondsSinceEpoch;
-          const int day = 24 * 60 * 60 * 1000;
           int nextone = oldnext + 1000 * day;
           data.forEach((k, v) {
             if (v is Map &&
@@ -278,36 +355,22 @@ class _ListPageState extends State<ListPage> {
             nextone = now;
           }
           if (direction == FlingDirection.startToEnd) {
-            data[i]['_chosen'] = now;
-            data[i]['_next'] = 2 * now - oldchosen;
-            if (nextone > data[i]['_next'] && nextone != now) {
+            info.choose();
+            if (nextone > info.next && nextone != now) {
               // We haven't moved back in sequence! Presumably because all our
               // options are too far into the future... so let us move them
               // forward.
               data.forEach((k, v) {
                 if (v is Map &&
                     v.containsKey('_next') &&
-                    v['_next'] > data[i]['_next']) {
+                    v['_next'] > info.next) {
                   // move it back closer to now by half.
                   v['_next'] = now + (v['_next'] - now) ~/ 2;
                 }
               });
             }
           } else {
-            data[i]['_ignored'] = now;
-            int offset = 1000 + now - oldchosen;
-            if (offset < 1000 + nextone - oldchosen) {
-              offset = 1000 + nextone - oldchosen;
-            }
-            if (offset < day ~/ 24) {
-              offset = day ~/ 24;
-            }
-            print('offset is $offset... 2*offset is ${2*offset}');
-            if (data[i]['_next'] < now) {
-              data[i]['_next'] = now + offset + myrand(2 * offset);
-            } else {
-              data[i]['_next'] = data[i]['_next'] + offset + myrand(2 * offset);
-            }
+            info.ignore(nextone);
           }
           // Now we fix up "follows" relationship.  This is pretty hokey, we
           // just do the swaps seven times, which is probaly enough to percolate
@@ -396,7 +459,6 @@ class _ListPageState extends State<ListPage> {
               final int now = new DateTime.now().millisecondsSinceEpoch;
               data[newitem] = {
                 '_chosen': now,
-                '_ignored': 0,
                 '_next': now + myrand(2 * day),
               };
               _ref.set(data);
