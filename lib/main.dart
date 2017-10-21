@@ -31,6 +31,12 @@ import 'package:flutter_color_picker/flutter_color_picker.dart';
 // import 'package:share/share.dart';
 
 const int day = 24 * 60 * 60 * 1000;
+String prettyTime(int t) {
+  if (t >= day) {
+    return '${t ~/ day} days';
+  }
+  return '$t ms';
+}
 
 final GoogleSignIn _googleSignIn = new GoogleSignIn();
 DatabaseReference _root;
@@ -103,20 +109,10 @@ class ThingInfo {
     if (!data.containsKey('_chosen_count')) {
       data['_chosen_count'] = 0;
     }
-    if (!data.containsKey('_added')) {
-      if (firstChosen != null) {
-        data['_added'] = firstChosen;
-      } else if (chosen != null) {
-        data['_added'] = chosen;
-      } else {
-        data['_added'] = next;
-      }
-    }
   }
 
   int get now => new DateTime.now().millisecondsSinceEpoch;
 
-  int get added => data['_added'];
   int get chosen => data['_chosen'];
   int get firstChosen => data['_first_chosen'];
   int get next => data['_next'];
@@ -170,10 +166,11 @@ class ThingInfo {
   }
 
   void choose(final int meanIntervalList) {
+    print('choosing: ${prettyTime(now - chosen)}  and  ${prettyTime(meanInterval)}  and  ${prettyTime(meanIntervalList)}');
     if (count > 1) {
-      data['_next'] = pow((2 * now - chosen)*meanInterval*meanIntervalList, 1/3).round();
+      data['_next'] = pow((now - chosen)*meanInterval*meanIntervalList, 1/3).round();
     } else if (count == 1) {
-      data['_next'] = pow((2 * now - chosen)*meanIntervalList, 1/2).round();
+      data['_next'] = pow((now - chosen)*meanIntervalList, 1/2).round();
     } else {
       data['_next'] = meanIntervalList;
     }
@@ -486,7 +483,7 @@ class _ListPageState extends State<ListPage> {
               final int now = new DateTime.now().millisecondsSinceEpoch;
               data[newitem] = {
                 '_chosen': now,
-                '_next': now + myrand(2 * day),
+                '_next': now + myrand(2 * _info.meanChildInterval),
               };
               _ref.set(data);
               print('got $newitem');
