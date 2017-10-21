@@ -138,6 +138,13 @@ class ThingInfo {
     return ch;
   }
 
+  ThingInfo child(String name) {
+    if (data.containsKey(name)) {
+      return new ThingInfo(name: name, data: data[name]);
+    }
+    return null;
+  }
+
   int get meanInterval {
     if (count == 0) {
       return 1 * day;
@@ -153,6 +160,11 @@ class ThingInfo {
     if (firstChosen == null) {
       data['_first_chosen'] = chosen;
     }
+  }
+
+  void sooner() {
+    // move it back closer to now by half.
+    data['_next'] = now + (next - now) ~/ 2;
   }
 
   void ignore(int nextone) {
@@ -195,10 +207,10 @@ class _ListPageState extends State<ListPage> {
           myColor = darkColor(mainthing.color);
         }
         mainthing.children.forEach((ch) {
-              if (searching == null || matches(searching, {ch.name: ch.data})) {
-                things.add(ch);
-              }
-            });
+          if (searching == null || matches(searching, {ch.name: ch.data})) {
+            things.add(ch);
+          }
+        });
         things.sort((a, b) => a.next.compareTo(b.next));
         _follows = {};
         things.forEach((thing) {
@@ -339,16 +351,14 @@ class _ListPageState extends State<ListPage> {
             child: new ListTile(trailing: scheduleIcon), color: scheduleColor),
         onFlinged: (direction) async {
           Map data = (await _ref.once()).value;
+          ThingInfo mainthing = new ThingInfo(name: listname, data: data);
           ThingInfo info = new ThingInfo(name: i, data: data[i]);
           final int oldnext = info.next;
           final int now = new DateTime.now().millisecondsSinceEpoch;
           int nextone = oldnext + 1000 * day;
-          data.forEach((k, v) {
-            if (v is Map &&
-                v.containsKey('_next') &&
-                v['_next'] > oldnext &&
-                v['_next'] < nextone) {
-              nextone = v['_next'];
+          mainthing.children.forEach((ch) {
+            if (ch.next > oldnext && ch.next < nextone) {
+              nextone = ch.next;
             }
           });
           if (nextone == oldnext + 1000 * day) {
@@ -358,14 +368,10 @@ class _ListPageState extends State<ListPage> {
             info.choose();
             if (nextone > info.next && nextone != now) {
               // We haven't moved back in sequence! Presumably because all our
-              // options are too far into the future... so let us move them
-              // forward.
-              data.forEach((k, v) {
-                if (v is Map &&
-                    v.containsKey('_next') &&
-                    v['_next'] > info.next) {
-                  // move it back closer to now by half.
-                  v['_next'] = now + (v['_next'] - now) ~/ 2;
+              // options are too far into the future... so let them be sooner.
+              mainthing.children.forEach((ch) {
+                if (ch.next > info.next) {
+                  ch.sooner();
                 }
               });
             }
@@ -375,18 +381,17 @@ class _ListPageState extends State<ListPage> {
           // Now we fix up "follows" relationship.  This is pretty hokey, we
           // just do the swaps seven times, which is probaly enough to percolate
           // the ordering down.
+          List<ThingInfo> children = mainthing.children;
           for (int ii = 0; ii < 7; ii++) {
-            data.forEach((k, v) {
-              if (v is Map &&
-                  v.containsKey('_next') &&
-                  v.containsKey('_follows')) {
-                Map earlier = data[v['_follows']];
-                if (earlier['_chosen'] < v['_chosen'] &&
-                    earlier['_next'] > v['_next']) {
-                  // They are out of order, so swap!
-                  int oldvnext = v['_next'];
-                  v['_next'] = earlier['_next'];
-                  earlier['_next'] = oldvnext;
+            children.forEach((ch) {
+              if (ch.follows != null) {
+                ThingInfo earlier = mainthing.child(ch.follows);
+                if (earlier != null &&
+                    earlier.chosen < ch.chosen &&
+                    earlier.next > ch.next) {
+                  int oldchnext = ch.next;
+                  ch.data['_next'] = earlier.next;
+                  earlier.data['_next'] = oldchnext;
                 }
               }
             });
