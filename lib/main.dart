@@ -30,10 +30,24 @@ import 'package:flutter_color_picker/flutter_color_picker.dart';
 
 // import 'package:share/share.dart';
 
-const int day = 24 * 60 * 60 * 1000;
+const int second = 1000;
+const int minute = 60*second;
+const int hour = 60*minute;
+const int day = 24 * hour;
+const int month = 30*day;
+const int year = 365*day;
 String prettyTime(int t) {
+  if (t >= year) {
+    return '${t ~/ year} year';
+  }
+  if (t >= month) {
+    return '${t ~/ month} month';
+  }
   if (t >= day) {
     return '${t ~/ day} days';
+  }
+  if (t >= hour) {
+    return '${t ~/ hour} hours';
   }
   return '$t ms';
 }
