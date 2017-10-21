@@ -349,6 +349,7 @@ class _ListPageState extends State<ListPage> {
     if (searching != null) {
       appbar = new AppBar(
           leading: new BackButton(),
+          backgroundColor: myColor,
           title: new TextField(
               keyboardType: TextInputType.text,
               style: new TextStyle(fontSize: 16.0),

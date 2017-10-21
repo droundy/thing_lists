@@ -29,6 +29,8 @@ sushi.
 
 ## 0.0.8
 
+- Make search bar color match the thing list color.
+
 ## 0.0.7
 
 - Use item color to set theme color, so each list can have a different
