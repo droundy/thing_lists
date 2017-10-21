@@ -129,7 +129,7 @@ class _FlingableClipper extends CustomClipper<Rect> {
         super(reclip: moveAnimation);
 
   final Axis axis;
-  final Animation<FractionalOffset> moveAnimation;
+  final Animation<Offset> moveAnimation;
 
   @override
   Rect getClip(Size size) {
@@ -173,7 +173,7 @@ class _FlingableState extends State<Flingable> with TickerProviderStateMixin {
   }
 
   AnimationController _moveController;
-  Animation<FractionalOffset> _moveAnimation;
+  Animation<Offset> _moveAnimation;
 
   AnimationController _resizeController;
   Animation<double> _resizeAnimation;
@@ -264,11 +264,11 @@ class _FlingableState extends State<Flingable> with TickerProviderStateMixin {
   }
 
   void _updateMoveAnimation() {
-    _moveAnimation = new FractionalOffsetTween(
-            begin: FractionalOffset.topLeft,
-            end: _directionIsXAxis
-                ? new FractionalOffset(_dragExtent.sign, 0.0)
-                : new FractionalOffset(0.0, _dragExtent.sign))
+    final double end = _dragExtent.sign;
+    _moveAnimation = new Tween<Offset>(
+      begin: Offset.zero,
+      end: new Offset(end, 0.0),
+    )
         .animate(_moveController);
   }
 
