@@ -182,11 +182,11 @@ class ThingInfo {
   void choose(final int meanIntervalList) {
     print('choosing: ${prettyTime(now - chosen)}  and  ${prettyTime(meanInterval)}  and  ${prettyTime(meanIntervalList)}');
     if (count > 1) {
-      data['_next'] = pow((now - chosen)*meanInterval*meanIntervalList, 1/3).round();
+      data['_next'] = now + pow((now - chosen)*meanInterval*meanIntervalList, 1/3).round();
     } else if (count == 1) {
-      data['_next'] = pow((now - chosen)*meanIntervalList, 1/2).round();
+      data['_next'] = now + pow((now - chosen)*meanIntervalList, 1/2).round();
     } else {
-      data['_next'] = meanIntervalList;
+      data['_next'] = now + meanIntervalList;
     }
     data['_chosen'] = now;
     data['_chosen_count'] += 1;
