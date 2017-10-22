@@ -30,6 +30,8 @@ sushi.
 ## 0.0.8
 
 - Make search bar color match the thing list color.
+- Make scheduling after choosing an item revert to the mean.
+- Add menu item to view historical information about an item.
 
 ## 0.0.7
 
