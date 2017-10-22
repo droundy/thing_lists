@@ -31,23 +31,29 @@ import 'package:flutter_color_picker/flutter_color_picker.dart';
 // import 'package:share/share.dart';
 
 const int second = 1000;
-const int minute = 60*second;
-const int hour = 60*minute;
+const int minute = 60 * second;
+const int hour = 60 * minute;
 const int day = 24 * hour;
-const int month = 30*day;
-const int year = 365*day;
+const int month = 30 * day;
+const int year = 365 * day;
 String prettyTime(int t) {
-  if (t >= year) {
+  if (t.abs() >= year) {
     return '${t ~/ year} year';
   }
-  if (t >= month) {
+  if (t.abs() >= month) {
     return '${t ~/ month} month';
   }
-  if (t >= day) {
+  if (t.abs() >= day) {
     return '${t ~/ day} days';
   }
-  if (t >= hour) {
+  if (t.abs() >= hour) {
     return '${t ~/ hour} hours';
+  }
+  if (t.abs() >= minute) {
+    return '${t ~/ minute} min';
+  }
+  if (t.abs() >= second) {
+    return '${t ~/ second} s';
   }
   return '$t ms';
 }
@@ -168,11 +174,11 @@ class ThingInfo {
     int totalcount = 0;
     int totaltime = 0;
     children.forEach((ch) {
-          if (ch.count > 1) {
-            totaltime += ch.count - 1;
-            totaltime += (ch.chosen - ch.firstChosen);
-          }
-        });
+      if (ch.count > 1) {
+        totaltime += ch.count - 1;
+        totaltime += (ch.chosen - ch.firstChosen);
+      }
+    });
     if (totalcount == 0) {
       return 1 * day;
     }
@@ -180,11 +186,14 @@ class ThingInfo {
   }
 
   void choose(final int meanIntervalList) {
-    print('choosing: ${prettyTime(now - chosen)}  and  ${prettyTime(meanInterval)}  and  ${prettyTime(meanIntervalList)}');
+    print(
+        'choosing: ${prettyTime(now - chosen)}  and  ${prettyTime(meanInterval)}  and  ${prettyTime(meanIntervalList)}');
     if (count > 1) {
-      data['_next'] = now + pow((now - chosen)*meanInterval*meanIntervalList, 1/3).round();
+      data['_next'] = now +
+          pow((now - chosen) * meanInterval * meanIntervalList, 1 / 3).round();
     } else if (count == 1) {
-      data['_next'] = now + pow((now - chosen)*meanIntervalList, 1/2).round();
+      data['_next'] =
+          now + pow((now - chosen) * meanIntervalList, 1 / 2).round();
     } else {
       data['_next'] = now + meanIntervalList;
     }
@@ -313,6 +322,8 @@ class _ListPageState extends State<ListPage> {
                 new PopupMenuItem<String>(
                     value: 'rename', child: const Text('rename')),
                 followItem,
+                new PopupMenuItem<String>(
+                    value: 'info', child: const Text('info...')),
               ],
           onSelected: (selected) async {
             if (selected == 'color') {
@@ -330,6 +341,14 @@ class _ListPageState extends State<ListPage> {
                 _ref.child(newname).set(data);
                 _ref.child(i).remove();
               }
+            } else if (selected == 'info') {
+              final int now = new DateTime.now().millisecondsSinceEpoch;
+              await infoDialog(context, '$i information', '''
+Count: ${_info.child(i).count}
+Chosen: ${prettyTime(now - _info.child(i).chosen)} ago
+Next: ${prettyTime(_info.child(i).next-now)}
+Interval: ${prettyTime(_info.child(i).meanInterval)}
+''');
             } else if (selected == 'follows') {
               List<String> options = [];
               _items.forEach((xx) {
@@ -560,6 +579,21 @@ Future<bool> confirmDialog(
               Navigator.pop(context, true);
             }),
       ]));
+}
+
+infoDialog(BuildContext context, String title, String info) async {
+  return showDialog(
+      context: context,
+      child: new AlertDialog(
+          title: new Text(title),
+          content: new Text(info),
+          actions: <Widget>[
+            new FlatButton(
+                child: new Text('CLOSE'),
+                onPressed: () {
+                  Navigator.pop(context, null);
+                }),
+          ]));
 }
 
 bool matchesString(String searching, String data) {
