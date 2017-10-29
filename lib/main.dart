@@ -418,9 +418,20 @@ Interval: ${prettyDuration(_info.child(i).meanInterval)}
         secondaryBackground: new Card(
             child: new ListTile(trailing: scheduleIcon), color: scheduleColor),
         onFlinged: (direction) async {
+          final int now = new DateTime.now().millisecondsSinceEpoch;
+          // First: make none of the scheduled next times be in the past.  That
+          // would be just silly!
+          int mostNegativeNext = 0;
+          _info.children.forEach((ch) {
+            if (ch.next - now < mostNegativeNext) {
+              mostNegativeNext = ch.next - now;
+            }
+          });
+          _info.children.forEach((ch) {
+            ch.data['_next'] -= mostNegativeNext;
+          });
           ThingInfo info = _info.child(i);
           final int oldnext = info.next;
-          final int now = new DateTime.now().millisecondsSinceEpoch;
           int nextone = oldnext + 1000 * day;
           _info.children.forEach((ch) {
             if (ch.next > oldnext && ch.next < nextone) {
