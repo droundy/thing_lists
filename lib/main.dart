@@ -187,6 +187,15 @@ class ThingInfo {
       }
     });
     if (totalcount == 0) {
+      int firstChosenChild = 0;
+      children.forEach((ch) {
+            if (ch.count > 0 && (ch.firstChosen < firstChosenChild || firstChosenChild == 0)) {
+              firstChosenChild = ch.firstChosen;
+            }
+          });
+      if (firstChosenChild > 0) {
+        return now - firstChosenChild;
+      }
       return 1 * day;
     }
     return totaltime ~/ totalcount;
@@ -364,7 +373,7 @@ class _ListPageState extends State<ListPage> {
               await infoDialog(context, '$i information', '''
 $countInfo
 Next: ${prettyTime(_info.child(i).next)}
-Interval: ${prettyDuration(_info.child(i).meanInterval)}
+Interval: ${prettyDuration(_info.child(i).meanInterval)} vs ${prettyDuration(_info.meanChildInterval)}
 ''');
             } else if (selected == 'delete') {
               final bool confirmed =
