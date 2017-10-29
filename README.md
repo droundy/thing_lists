@@ -27,6 +27,8 @@ sushi.
 
 ## ChangeLog
 
+## 0.0.9
+
 ## 0.0.8
 
 - Make search bar color match the thing list color.
