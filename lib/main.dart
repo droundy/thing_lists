@@ -327,10 +327,12 @@ class _ListPageState extends State<ListPage> {
                 new PopupMenuItem<String>(
                     value: 'color', child: const Text('color')),
                 new PopupMenuItem<String>(
-                    value: 'rename', child: const Text('rename')),
+                    value: 'info', child: const Text('info...')),
                 followItem,
                 new PopupMenuItem<String>(
-                    value: 'info', child: const Text('info...')),
+                    value: 'rename', child: const Text('rename')),
+                new PopupMenuItem<String>(
+                    value: 'delete', child: const Text('delete')),
               ],
           onSelected: (selected) async {
             if (selected == 'color') {
@@ -364,6 +366,14 @@ $countInfo
 Next: ${prettyTime(_info.child(i).next)}
 Interval: ${prettyDuration(_info.child(i).meanInterval)}
 ''');
+            } else if (selected == 'delete') {
+              final bool confirmed =
+                  await confirmDialog(context, 'Really delete $i?', 'DELETE');
+              print('confirmed is $confirmed');
+              if (confirmed) {
+                print('am deleting $i');
+                _ref.child(i).remove();
+              }
             } else if (selected == 'follows') {
               List<String> options = [];
               _items.forEach((xx) {
@@ -400,17 +410,6 @@ Interval: ${prettyDuration(_info.child(i).meanInterval)}
                         print('selected $i');
                         Navigator.of(context).pushNamed('/$listname/$i');
                       })),
-              new IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () async {
-                    final bool confirmed = await confirmDialog(
-                        context, 'Really delete $i?', 'DELETE');
-                    print('confirmed is $confirmed');
-                    if (confirmed) {
-                      print('am deleting $i');
-                      _ref.child(i).remove();
-                    }
-                  }),
             ])),
         key: _keys[i],
         resizeDuration: const Duration(milliseconds: 1000),
