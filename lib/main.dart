@@ -28,34 +28,41 @@ import 'package:firebase_database/firebase_database.dart';
 
 import 'package:flutter_color_picker/flutter_color_picker.dart';
 
-// import 'package:share/share.dart';
-
 const int second = 1000;
 const int minute = 60 * second;
 const int hour = 60 * minute;
 const int day = 24 * hour;
 const int month = 30 * day;
 const int year = 365 * day;
-String prettyTime(int t) {
-  if (t.abs() >= year) {
+
+String prettyDuration(int t) {
+  if (t.abs() > 2.5 * year) {
     return '${t ~/ year} year';
   }
-  if (t.abs() >= month) {
+  if (t.abs() > 2.5 * month) {
     return '${t ~/ month} month';
   }
-  if (t.abs() >= day) {
+  if (t.abs() > 2.5 * day) {
     return '${t ~/ day} days';
   }
-  if (t.abs() >= hour) {
+  if (t.abs() > 2.5 * hour) {
     return '${t ~/ hour} hours';
   }
-  if (t.abs() >= minute) {
+  if (t.abs() > 2.5 * minute) {
     return '${t ~/ minute} min';
   }
-  if (t.abs() >= second) {
+  if (t.abs() > 2.5 * second) {
     return '${t ~/ second} s';
   }
   return '$t ms';
+}
+
+String prettyTime(int t) {
+  final int now = new DateTime.now().millisecondsSinceEpoch;
+  if (t < now) {
+    return '${prettyDuration(now-t)} ago';
+  }
+  return 'in ${prettyDuration(t-now)}';
 }
 
 final GoogleSignIn _googleSignIn = new GoogleSignIn();
@@ -187,7 +194,7 @@ class ThingInfo {
 
   void choose(final int meanIntervalList) {
     print(
-        'choosing: ${prettyTime(now - chosen)}  and  ${prettyTime(meanInterval)}  and  ${prettyTime(meanIntervalList)}');
+        'choosing: ${prettyTime(chosen)}  and  ${prettyDuration(meanInterval)}  and  ${prettyDuration(meanIntervalList)}');
     if (count > 1) {
       data['_next'] = now +
           pow((now - chosen) * meanInterval * meanIntervalList, 1 / 3).round();
@@ -342,12 +349,20 @@ class _ListPageState extends State<ListPage> {
                 _ref.child(i).remove();
               }
             } else if (selected == 'info') {
-              final int now = new DateTime.now().millisecondsSinceEpoch;
+              String countInfo;
+              if (_info.child(i).count == 1) {
+                countInfo =
+                    'Chosen once\nChosen: ${prettyTime(_info.child(i).chosen)}';
+              } else if (_info.child(i).count > 0) {
+                countInfo =
+                    'Chosen ${_info.child(i).count} times\nChosen: ${prettyTime(_info.child(i).chosen)}';
+              } else {
+                countInfo = 'Never chosen';
+              }
               await infoDialog(context, '$i information', '''
-Count: ${_info.child(i).count}
-Chosen: ${prettyTime(now - _info.child(i).chosen)} ago
-Next: ${prettyTime(_info.child(i).next-now)}
-Interval: ${prettyTime(_info.child(i).meanInterval)}
+$countInfo
+Next: ${prettyTime(_info.child(i).next)}
+Interval: ${prettyDuration(_info.child(i).meanInterval)}
 ''');
             } else if (selected == 'follows') {
               List<String> options = [];
@@ -587,13 +602,7 @@ infoDialog(BuildContext context, String title, String info) async {
       child: new AlertDialog(
           title: new Text(title),
           content: new Text(info),
-          actions: <Widget>[
-            new FlatButton(
-                child: new Text('CLOSE'),
-                onPressed: () {
-                  Navigator.pop(context, null);
-                }),
-          ]));
+          actions: <Widget>[]));
 }
 
 bool matchesString(String searching, String data) {
