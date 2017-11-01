@@ -370,10 +370,27 @@ class _ListPageState extends State<ListPage> {
               } else {
                 countInfo = 'Never chosen';
               }
+              ThingInfo childI = _info.child(i);
+              final int now = childI.now;
+              final int family = _info.meanChildInterval;
+              String currentStr = '-';
+              String meanStr = '-';
+              int v = family;
+              if (childI.count > 1) {
+                int current = now-childI.chosen;
+                int mean = childI.meanInterval;
+                int v = pow(current * mean * family, 1 / 3).round();
+                currentStr = '${prettyDuration(current)}';
+                meanStr = '${prettyDuration(mean)}';
+              } else if (childI.count == 1) {
+                int current = now-childI.chosen;
+                int v = pow(current * family, 1 / 2).round();
+                currentStr = 'Interval: ${prettyDuration(current)}';
+              }
               await infoDialog(context, '$i information', '''
 $countInfo
 Next: ${prettyTime(_info.child(i).next)}
-Interval: ${prettyDuration(_info.child(i).meanInterval)} vs ${prettyDuration(_info.meanChildInterval)}
+Interval: $currentStr/$meanStr/${prettyDuration(family)} = ${prettyDuration(v)}
 ''');
             } else if (selected == 'delete') {
               final bool confirmed =
