@@ -391,7 +391,8 @@ class _ListPageState extends State<ListPage> {
               await infoDialog(context, '$i information', '''
 $countInfo
 Next: ${prettyTime(_info.child(i).next)}
-Interval: $currentStr/$meanStr/${prettyDuration(family)} = ${prettyDuration(v)}
+Intervals: $currentStr/$meanStr/${prettyDuration(family)}
+\t⟶ ${prettyDuration(v)}
 ''');
             } else if (selected == 'delete') {
               final bool confirmed =
