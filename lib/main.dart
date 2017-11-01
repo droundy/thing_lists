@@ -182,7 +182,7 @@ class ThingInfo {
     int totaltime = 0;
     children.forEach((ch) {
       if (ch.count > 1) {
-        totaltime += ch.count - 1;
+        totalcount += ch.count - 1;
         totaltime += (ch.chosen - ch.firstChosen);
       }
     });

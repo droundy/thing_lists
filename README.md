@@ -29,6 +29,8 @@ sushi.
 
 ## 0.0.9
 
+- Fix typo bug in computing the average time between choosings.
+
 ## 0.0.8
 
 - Make search bar color match the thing list color.
