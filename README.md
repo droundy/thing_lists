@@ -27,6 +27,8 @@ sushi.
 
 ## ChangeLog
 
+## 0.0.10
+
 ## 0.0.9
 
 - Fix typo bug in computing the average time between choosings.
