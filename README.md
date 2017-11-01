@@ -30,6 +30,7 @@ sushi.
 ## 0.0.9
 
 - Fix typo bug in computing the average time between choosings.
+- Make "info" provide more detail about choice interval statistics.
 
 ## 0.0.8
 

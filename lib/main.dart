@@ -32,27 +32,31 @@ const int second = 1000;
 const int minute = 60 * second;
 const int hour = 60 * minute;
 const int day = 24 * hour;
+const int week = 7*day;
 const int month = 30 * day;
 const int year = 365 * day;
 
 String prettyDuration(int t) {
   if (t.abs() > 2.5 * year) {
-    return '${t ~/ year} year';
+    return '${t ~/ year}y';
   }
-  if (t.abs() > 2.5 * month) {
-    return '${t ~/ month} month';
+  // if (t.abs() > 2.5 * month) {
+  //   return '${t ~/ month} months';
+  // }
+  if (t.abs() > 2.5 * week) {
+    return '${t ~/ week}w';
   }
   if (t.abs() > 2.5 * day) {
-    return '${t ~/ day} days';
+    return '${t ~/ day}d';
   }
   if (t.abs() > 2.5 * hour) {
-    return '${t ~/ hour} hours';
+    return '${t ~/ hour}h';
   }
   if (t.abs() > 2.5 * minute) {
-    return '${t ~/ minute} min';
+    return '${t ~/ minute}m';
   }
   if (t.abs() > 2.5 * second) {
-    return '${t ~/ second} s';
+    return '${t ~/ second}s';
   }
   return '$t ms';
 }
@@ -386,13 +390,12 @@ class _ListPageState extends State<ListPage> {
               } else if (childI.count == 1) {
                 int current = now - childI.chosen;
                 v = pow(current * family, 0.5).round();
-                currentStr = 'Interval: ${prettyDuration(current)}';
+                currentStr = '${prettyDuration(current)}';
               }
               await infoDialog(context, '$i information', '''
 $countInfo
 Next: ${prettyTime(_info.child(i).next)}
-Intervals: $currentStr/$meanStr/${prettyDuration(family)}
-\t⟶ ${prettyDuration(v)}
+Intervals: $currentStr/$meanStr/${prettyDuration(family)} ⟶ ${prettyDuration(v)}
 ''');
             } else if (selected == 'delete') {
               final bool confirmed =
