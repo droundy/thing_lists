@@ -206,10 +206,10 @@ class ThingInfo {
         'choosing: ${prettyTime(chosen)}  and  ${prettyDuration(meanInterval)}  and  ${prettyDuration(meanIntervalList)}');
     if (count > 1) {
       data['_next'] = now +
-          pow((now - chosen) * meanInterval * meanIntervalList, 1 / 3).round();
+          pow((now - chosen) * meanInterval * meanIntervalList, 1.0 / 3).round();
     } else if (count == 1) {
       data['_next'] =
-          now + pow((now - chosen) * meanIntervalList, 1 / 2).round();
+          now + pow((now - chosen) * meanIntervalList, 0.5).round();
     } else {
       data['_next'] = now + meanIntervalList;
     }
@@ -379,12 +379,12 @@ class _ListPageState extends State<ListPage> {
               if (childI.count > 1) {
                 int current = now-childI.chosen;
                 int mean = childI.meanInterval;
-                int v = pow(current * mean * family, 1 / 3).round();
+                v = pow(current * mean * family, 1.0 / 3).round();
                 currentStr = '${prettyDuration(current)}';
                 meanStr = '${prettyDuration(mean)}';
               } else if (childI.count == 1) {
                 int current = now-childI.chosen;
-                int v = pow(current * family, 1 / 2).round();
+                v = pow(current * family, 0.5).round();
                 currentStr = 'Interval: ${prettyDuration(current)}';
               }
               await infoDialog(context, '$i information', '''
