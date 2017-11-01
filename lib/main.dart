@@ -189,10 +189,11 @@ class ThingInfo {
     if (totalcount == 0) {
       int firstChosenChild = 0;
       children.forEach((ch) {
-            if (ch.count > 0 && (ch.firstChosen < firstChosenChild || firstChosenChild == 0)) {
-              firstChosenChild = ch.firstChosen;
-            }
-          });
+        if (ch.count > 0 &&
+            (ch.firstChosen < firstChosenChild || firstChosenChild == 0)) {
+          firstChosenChild = ch.firstChosen;
+        }
+      });
       if (firstChosenChild > 0) {
         return now - firstChosenChild;
       }
@@ -206,10 +207,10 @@ class ThingInfo {
         'choosing: ${prettyTime(chosen)}  and  ${prettyDuration(meanInterval)}  and  ${prettyDuration(meanIntervalList)}');
     if (count > 1) {
       data['_next'] = now +
-          pow((now - chosen) * meanInterval * meanIntervalList, 1.0 / 3).round();
+          pow((now - chosen) * meanInterval * meanIntervalList, 1.0 / 3)
+              .round();
     } else if (count == 1) {
-      data['_next'] =
-          now + pow((now - chosen) * meanIntervalList, 0.5).round();
+      data['_next'] = now + pow((now - chosen) * meanIntervalList, 0.5).round();
     } else {
       data['_next'] = now + meanIntervalList;
     }
@@ -377,13 +378,13 @@ class _ListPageState extends State<ListPage> {
               String meanStr = '-';
               int v = family;
               if (childI.count > 1) {
-                int current = now-childI.chosen;
+                int current = now - childI.chosen;
                 int mean = childI.meanInterval;
                 v = pow(current * mean * family, 1.0 / 3).round();
                 currentStr = '${prettyDuration(current)}';
                 meanStr = '${prettyDuration(mean)}';
               } else if (childI.count == 1) {
-                int current = now-childI.chosen;
+                int current = now - childI.chosen;
                 v = pow(current * family, 0.5).round();
                 currentStr = 'Interval: ${prettyDuration(current)}';
               }
